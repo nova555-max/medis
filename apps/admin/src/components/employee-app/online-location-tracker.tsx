@@ -66,15 +66,20 @@ export function LiveLocationTracker({
 
   useEffect(() => {
     if (mode !== "online") return;
+    let cancelled = false;
     const supabase = createClient();
     if (!navigator.geolocation) return;
     navigator.geolocation.getCurrentPosition(async (pos) => {
+      if (cancelled) return;
       await supabase.rpc("employee_update_location", {
         p_lat: pos.coords.latitude,
         p_lng: pos.coords.longitude,
         p_activity: activity,
       });
     });
+    return () => {
+      cancelled = true;
+    };
   }, [activity, mode]);
 
   if (mode === "office") {

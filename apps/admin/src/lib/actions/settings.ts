@@ -72,6 +72,13 @@ export async function updateCompanySettingsAction(
     }
     const { data: pub } = supabase.storage.from("avatars").getPublicUrl(path);
     logoUrl = pub.publicUrl;
+    // Ensure we store a public object URL (not a signed/auth path)
+    if (logoUrl.includes("/storage/v1/object/sign/")) {
+      logoUrl = logoUrl.replace(
+        "/storage/v1/object/sign/",
+        "/storage/v1/object/public/",
+      );
+    }
   }
 
   const lateFineEnabled = formData.get("lateFineEnabled") === "on";

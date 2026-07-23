@@ -1,4 +1,5 @@
 import { fmtMoney } from "@/lib/reports/types";
+import { SafeImage } from "@/components/ui/safe-image";
 
 const MONTH_CKB = [
   "",
@@ -73,11 +74,15 @@ export function SalaryReceiptCard({ data }: { data: ReceiptData }) {
       <div className="flex items-center justify-between gap-3 border-b border-line px-5 py-3">
         <div className="flex items-center gap-3">
           {data.company.logo_url ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
+            <SafeImage
               src={data.company.logo_url}
               alt=""
               className="h-11 w-11 rounded-lg border border-line object-contain p-0.5"
+              fallback={
+                <div className="flex h-11 w-11 items-center justify-center rounded-lg bg-brand-600 text-base font-bold text-white">
+                  {data.company.name.slice(0, 1)}
+                </div>
+              }
             />
           ) : (
             <div className="flex h-11 w-11 items-center justify-center rounded-lg bg-brand-600 text-base font-bold text-white">

@@ -1,5 +1,7 @@
 import type { CompanyBrand, ReportMeta } from "@/lib/reports/types";
 import { PrintReportButton } from "@/components/reports/print-button";
+import { SafeImage } from "@/components/ui/safe-image";
+import { safeImageSrc } from "@/lib/storage/image-url";
 
 export function ReportShell({
   brand,
@@ -12,6 +14,8 @@ export function ReportShell({
   children: React.ReactNode;
   actions?: React.ReactNode;
 }) {
+  const logoSrc = safeImageSrc(brand.logo_url);
+
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3 print:hidden">
@@ -29,18 +33,16 @@ export function ReportShell({
 
       <article className="report-sheet panel overflow-hidden print:shadow-none print:border-0">
         <header className="report-header flex flex-wrap items-start gap-4 bg-brand-600 px-6 py-5 text-white">
-          {brand.logo_url ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={brand.logo_url}
-              alt={brand.name}
-              className="h-14 w-14 rounded-xl bg-white object-contain p-1"
-            />
-          ) : (
-            <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-white/15 text-xl font-bold">
-              م
-            </div>
-          )}
+          <SafeImage
+            src={logoSrc}
+            alt={brand.name}
+            className="h-14 w-14 rounded-xl bg-white object-contain p-1"
+            fallback={
+              <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-white/15 text-xl font-bold">
+                م
+              </div>
+            }
+          />
           <div className="min-w-0 flex-1">
             <p className="text-xl font-bold">{brand.name}</p>
             <p className="mt-1 text-sm text-white/85">

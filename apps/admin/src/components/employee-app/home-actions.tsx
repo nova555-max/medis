@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useRef, useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import { Check, Fingerprint, MapPin } from "lucide-react";
 import {
   employeeCheckInAction,
@@ -47,11 +47,19 @@ export function EmployeeHomeActions({
   const [cameraOn, setCameraOn] = useState(false);
   const streamRef = useRef<MediaStream | null>(null);
 
+  useEffect(() => {
+    return () => {
+      streamRef.current?.getTracks().forEach((t) => t.stop());
+      streamRef.current = null;
+    };
+  }, []);
+
   const done = checkedIn && checkedOut;
   const mode: "in" | "out" | "done" = done ? "done" : checkedIn ? "out" : "in";
 
   async function startCamera() {
     try {
+      stopCamera();
       const stream = await navigator.mediaDevices.getUserMedia({
         video: { facingMode: "user" },
         audio: false,
@@ -70,6 +78,7 @@ export function EmployeeHomeActions({
   function stopCamera() {
     streamRef.current?.getTracks().forEach((t) => t.stop());
     streamRef.current = null;
+    if (videoRef.current) videoRef.current.srcObject = null;
     setCameraOn(false);
   }
 
@@ -89,7 +98,10 @@ export function EmployeeHomeActions({
           type: "image/jpeg",
         });
         setSelfieFile(file);
-        setPreview(URL.createObjectURL(blob));
+        setPreview((prev) => {
+          if (prev?.startsWith("blob:")) URL.revokeObjectURL(prev);
+          return URL.createObjectURL(blob);
+        });
         stopCamera();
       },
       "image/jpeg",
@@ -250,7 +262,10 @@ export function EmployeeHomeActions({
                 <button
                   type="button"
                   onClick={() => {
-                    setPreview(null);
+                    setPreview((prev) => {
+                      if (prev?.startsWith("blob:")) URL.revokeObjectURL(prev);
+                      return null;
+                    });
                     setSelfieFile(null);
                     startCamera();
                   }}

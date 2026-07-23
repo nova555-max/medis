@@ -1,14 +1,16 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useActionState, useEffect, useState } from "react";
 import {
   updateCompanySettingsAction,
   type SettingsState,
 } from "@/lib/actions/settings";
 import { Button } from "@/components/ui/button";
 import { Input, Label } from "@/components/ui/input";
+import { SafeImage } from "@/components/ui/safe-image";
 import { ckb } from "@/lib/ckb";
 import { currencyLabel } from "@/lib/money";
+import { safeImageSrc } from "@/lib/storage/image-url";
 
 const initial: SettingsState = {};
 const MAX_LOGO_BYTES = 1_500_000;
@@ -81,7 +83,9 @@ export function CompanySettingsForm({
     initial,
   );
   const [localError, setLocalError] = useState<string | null>(null);
-  const [preview, setPreview] = useState<string | null>(company.logo_url);
+  const [preview, setPreview] = useState<string | null>(
+    safeImageSrc(company.logo_url),
+  );
   const [fineEnabled, setFineEnabled] = useState(company.late_fine_enabled);
   const [absenceFineEnabled, setAbsenceFineEnabled] = useState(
     company.absence_fine_enabled,
@@ -92,6 +96,12 @@ export function CompanySettingsForm({
   const [weeklyOff, setWeeklyOff] = useState<number[]>(
     company.weekly_off_dows?.length ? company.weekly_off_dows : [5],
   );
+
+  useEffect(() => {
+    return () => {
+      if (preview?.startsWith("blob:")) URL.revokeObjectURL(preview);
+    };
+  }, [preview]);
 
   function toggleDow(dow: number) {
     setWeeklyOff((prev) =>
@@ -158,7 +168,10 @@ export function CompanySettingsForm({
               return;
             }
             setLocalError(null);
-            setPreview(URL.createObjectURL(f));
+            setPreview((prev) => {
+              if (prev?.startsWith("blob:")) URL.revokeObjectURL(prev);
+              return URL.createObjectURL(f);
+            });
           }}
         />
         <p className="mt-1 text-xs text-ink-muted">
@@ -166,8 +179,7 @@ export function CompanySettingsForm({
         </p>
         <input type="hidden" name="logoUrl" value={company.logo_url || ""} />
         {preview && (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
+          <SafeImage
             src={preview}
             alt="logo"
             className="mt-2 h-12 w-12 rounded-lg border border-line object-contain"

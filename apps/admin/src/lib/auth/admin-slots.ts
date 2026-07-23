@@ -22,8 +22,8 @@ export async function getAdminRegistrationStatus(): Promise<AdminRegistrationSta
         .from("profiles")
         .select("id", { count: "exact", head: true })
         .eq("role", "admin");
-      if (!error) {
-        const used = count ?? 0;
+      if (!error && count != null) {
+        const used = count;
         return { used, maxAllowed, open: used < maxAllowed, known: true };
       }
       // Retry without head in case the edge/runtime mishandles count-only
@@ -31,8 +31,8 @@ export async function getAdminRegistrationStatus(): Promise<AdminRegistrationSta
         .from("profiles")
         .select("id")
         .eq("role", "admin");
-      if (!listError) {
-        const used = data?.length ?? 0;
+      if (!listError && data) {
+        const used = data.length;
         return { used, maxAllowed, open: used < maxAllowed, known: true };
       }
     } catch {

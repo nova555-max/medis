@@ -53,13 +53,15 @@ export async function updateSession(request: NextRequest) {
   } = await supabase.auth.getUser();
 
   const path = request.nextUrl.pathname;
+  // Strict prefix: /employee and /employee/... only — never /employees (admin)
   const isEmployeeApp =
     path === "/employee" || path.startsWith("/employee/");
   const isEmployeeLogin = path === "/employee/login";
   const isEmployeeForgot = path === "/employee/forgot-password";
   const isEmployeeBlocked = path === "/employee/desktop-blocked";
   const isAdminAuth =
-    path.startsWith("/login") ||
+    path === "/login" ||
+    path.startsWith("/login/") ||
     path.startsWith("/register") ||
     path.startsWith("/verify-register") ||
     path.startsWith("/forgot-password") ||
@@ -72,10 +74,7 @@ export async function updateSession(request: NextRequest) {
     request.cookies.get("mo_allow_desktop")?.value === "1";
   const ua = request.headers.get("user-agent") || "";
   const mobileOk = allowDesktopEmployee || isMobileUserAgent(ua);
-  const employeeSurface =
-    request.cookies.get("mo_surface")?.value === "employee";
 
-  // Mark employee surface so refresh / root never shows admin login
   const stampEmployeeSurface = (res: NextResponse) => {
     res.cookies.set("mo_surface", "employee", {
       path: "/",
@@ -98,6 +97,7 @@ export async function updateSession(request: NextRequest) {
     return res;
   };
 
+  // ——— Employee routes: only /employee/* ———
   if (
     (isEmployeeApp || isEmployeeLogin || isEmployeeForgot) &&
     !isEmployeeBlocked &&
@@ -110,18 +110,6 @@ export async function updateSession(request: NextRequest) {
 
   if (isEmployeeBlocked) {
     return stampEmployeeSurface(supabaseResponse);
-  }
-
-  // Employee surface: keep employees off admin login/home — but NEVER block /register
-  if (
-    employeeSurface &&
-    !user &&
-    (path === "/" || path === "/login")
-  ) {
-    const redirectUrl = request.nextUrl.clone();
-    redirectUrl.pathname = "/employee/login";
-    redirectUrl.search = "";
-    return stampEmployeeSurface(NextResponse.redirect(redirectUrl));
   }
 
   if (isEmployeeLogin || isEmployeeForgot) {
@@ -170,6 +158,8 @@ export async function updateSession(request: NextRequest) {
     return stampEmployeeSurface(supabaseResponse);
   }
 
+  // ——— Admin routes: /login, /register, dashboard, etc. ———
+  // Never hijack these based on mo_surface cookie.
   if (isAdminAuth) {
     const isPasswordFlow =
       path.startsWith("/forgot-password") ||
@@ -200,10 +190,9 @@ export async function updateSession(request: NextRequest) {
 
   if (!user) {
     const redirectUrl = request.nextUrl.clone();
-    redirectUrl.pathname = employeeSurface ? "/employee/login" : "/login";
-    return employeeSurface
-      ? stampEmployeeSurface(NextResponse.redirect(redirectUrl))
-      : stampAdminSurface(NextResponse.redirect(redirectUrl));
+    redirectUrl.pathname = "/login";
+    redirectUrl.search = "";
+    return stampAdminSurface(NextResponse.redirect(redirectUrl));
   }
 
   const { data: profile } = await supabase

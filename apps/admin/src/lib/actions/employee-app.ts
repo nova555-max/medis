@@ -178,6 +178,30 @@ export async function employeeLeaveAction(
     ) + 1;
   if (days < 1) return { error: "بەروارەکان نادروستن." };
 
+  const year = new Date(startDate).getFullYear();
+
+  // Seed balances from leave type policy if missing
+  await supabase.rpc("ensure_leave_balances", {
+    p_employee_id: emp.id,
+    p_year: year,
+  });
+
+  const { data: available, error: balErr } = await supabase.rpc(
+    "leave_available_days",
+    {
+      p_employee_id: emp.id,
+      p_leave_type_id: leaveTypeId,
+      p_year: year,
+      p_exclude_request_id: null,
+    },
+  );
+
+  if (!balErr && available != null && Number(available) < days) {
+    return {
+      error: `باڵانسی مۆڵەت بەس نییە. ماوە: ${Number(available)} ڕۆژ، داواکراو: ${days} ڕۆژ.`,
+    };
+  }
+
   const { error } = await supabase.from("leave_requests").insert({
     company_id: emp.company_id,
     employee_id: emp.id,

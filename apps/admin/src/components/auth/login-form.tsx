@@ -10,7 +10,7 @@ import { ckb } from "@/lib/ckb";
 
 const initial: AuthState = {};
 
-export function LoginForm() {
+export function LoginForm({ registrationOpen = false }: { registrationOpen?: boolean }) {
   const [state, formAction, pending] = useActionState(loginAction, initial);
   const searchParams = useSearchParams();
   const adminOnly = searchParams.get("error") === "admin_only";
@@ -43,7 +43,15 @@ export function LoginForm() {
       </div>
 
       <div>
-        <Label htmlFor="password">{ckb.password}</Label>
+        <div className="mb-1.5 flex items-center justify-between">
+          <Label htmlFor="password">{ckb.password}</Label>
+          <Link
+            href="/forgot-password"
+            className="text-xs font-medium text-brand-600 hover:underline"
+          >
+            وشەی نهێنیت لەبیرچووە؟
+          </Link>
+        </div>
         <Input
           id="password"
           name="password"
@@ -59,12 +67,14 @@ export function LoginForm() {
         {pending ? ckb.loading : ckb.login}
       </Button>
 
-      <p className="text-center text-sm text-ink-muted">
-        {ckb.noAccount}{" "}
-        <Link href="/register" className="font-medium text-brand-600 hover:underline">
-          {ckb.register}
-        </Link>
-      </p>
+      {registrationOpen ? (
+        <p className="text-center text-sm text-ink-muted">
+          {ckb.noAccount}{" "}
+          <Link href="/register" className="font-medium text-brand-600 hover:underline">
+            {ckb.register}
+          </Link>
+        </p>
+      ) : null}
     </form>
   );
 }

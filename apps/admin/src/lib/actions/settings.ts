@@ -90,6 +90,17 @@ export async function updateCompanySettingsAction(
   const absenceFineMode =
     absenceFineModeRaw === "daily_wage" ? "daily_wage" : "fixed";
 
+  const parseCurrency = (raw: FormDataEntryValue | null) =>
+    String(raw || "IQD") === "USD" ? "USD" : "IQD";
+
+  // Prefer explicit money currency; fall back across the three selects
+  const moneyCurrency = parseCurrency(
+    formData.get("moneyCurrency") ||
+      formData.get("lateFineCurrency") ||
+      formData.get("absenceFineCurrency") ||
+      formData.get("overtimeCurrency"),
+  );
+
   const { error: companyErr } = await supabase
     .from("companies")
     .update({
@@ -113,6 +124,7 @@ export async function updateCompanySettingsAction(
         ? Math.max(0, absenceFineAmount)
         : 0,
       absence_fine_mode: absenceFineMode,
+      default_currency: moneyCurrency,
     })
     .eq("id", profile.company_id);
 

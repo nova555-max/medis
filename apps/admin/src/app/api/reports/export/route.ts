@@ -16,7 +16,6 @@ type Row = {
     full_name?: string;
     employee_code?: string;
     departments?: { name?: string } | null;
-    branches?: { name?: string } | null;
   } | null;
 };
 
@@ -76,7 +75,7 @@ export async function GET(request: NextRequest) {
   let query = supabase
     .from("attendance_records")
     .select(
-      "work_date, status, late_minutes, overtime_minutes, worked_minutes, employee_id, employees(full_name, employee_code, department_id, departments(name), branches(name))",
+      "work_date, status, late_minutes, overtime_minutes, worked_minutes, employee_id, employees(full_name, employee_code, department_id, departments(name))",
     )
     .gte("work_date", from)
     .lte("work_date", to)
@@ -108,7 +107,6 @@ export async function GET(request: NextRequest) {
     name: row.employees?.full_name || "",
     code: row.employees?.employee_code || "",
     dept: row.employees?.departments?.name || "",
-    branch: row.employees?.branches?.name || "",
     status: row.status,
     late: row.late_minutes || 0,
     worked: minsToHours(row.worked_minutes || 0),
@@ -122,13 +120,12 @@ export async function GET(request: NextRequest) {
       orientation: "landscape",
     });
     pdf.table(
-      [["Date", "Employee", "Code", "Dept", "Branch", "Status", "Late", "Worked", "OT"]],
+      [["Date", "Employee", "Code", "Dept", "Status", "Late", "Worked", "OT"]],
       tableRows.map((r) => [
         r.date,
         r.name,
         r.code,
         r.dept,
-        r.branch,
         r.status,
         r.late,
         r.worked,
@@ -154,7 +151,6 @@ export async function GET(request: NextRequest) {
       { header: "Employee", key: "name", width: 22 },
       { header: "Code", key: "code", width: 12 },
       { header: "Department", key: "dept", width: 16 },
-      { header: "Branch", key: "branch", width: 14 },
       { header: "Status", key: "status", width: 12 },
       { header: "Late (min)", key: "late", width: 10 },
       { header: "Worked", key: "worked", width: 10 },

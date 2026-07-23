@@ -26,7 +26,7 @@ export default async function EmployeeReportPage({
   const { data: emp } = await supabase
     .from("employees")
     .select(
-      "id, full_name, employee_code, email, phone, hire_date, photo_url, departments(name), positions(name), branches(name)",
+      "id, full_name, employee_code, email, phone, hire_date, photo_url, departments(name), positions(name)",
     )
     .eq("id", id)
     .maybeSingle();
@@ -63,7 +63,6 @@ export default async function EmployeeReportPage({
 
   const dept = emp.departments as { name?: string } | null;
   const pos = emp.positions as { name?: string } | null;
-  const branch = emp.branches as { name?: string } | null;
 
   const meta = buildMeta(
     `ڕاپۆرتی کارمەند — ${emp.full_name}`,
@@ -152,10 +151,6 @@ export default async function EmployeeReportPage({
             <p>
               <span className="text-ink-muted">پۆست: </span>
               {pos?.name || "—"}
-            </p>
-            <p>
-              <span className="text-ink-muted">لق: </span>
-              {branch?.name || "—"}
             </p>
             <p>
               <span className="text-ink-muted">بەرواری دامەزراندن: </span>

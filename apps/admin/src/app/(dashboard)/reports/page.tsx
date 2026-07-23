@@ -46,7 +46,7 @@ export default async function ReportsPage({
       supabase
         .from("attendance_records")
         .select(
-          "work_date, status, late_minutes, overtime_minutes, worked_minutes, employee_id, employees(full_name, employee_code, department_id, departments(name), branches(name))",
+          "work_date, status, late_minutes, overtime_minutes, worked_minutes, employee_id, employees(full_name, employee_code, department_id, departments(name))",
         )
         .gte("work_date", from)
         .lte("work_date", to)
@@ -279,7 +279,6 @@ export default async function ReportsPage({
                 <th>کارمەند</th>
                 <th>کۆد</th>
                 <th>بەش</th>
-                <th>لق</th>
                 <th>دۆخ</th>
                 <th>دواکەوتن</th>
                 <th>کارکردن</th>
@@ -292,7 +291,6 @@ export default async function ReportsPage({
                   full_name?: string;
                   employee_code?: string;
                   departments?: { name?: string } | null;
-                  branches?: { name?: string } | null;
                 } | null;
                 return (
                   <tr key={`${a.work_date}-${a.employee_id}-${idx}`}>
@@ -300,7 +298,6 @@ export default async function ReportsPage({
                     <td>{emp?.full_name}</td>
                     <td dir="ltr">{emp?.employee_code}</td>
                     <td>{emp?.departments?.name || "—"}</td>
-                    <td>{emp?.branches?.name || "—"}</td>
                     <td>{a.status}</td>
                     <td>{a.late_minutes || 0}</td>
                     <td dir="ltr">{minsToHours(a.worked_minutes || 0)}</td>

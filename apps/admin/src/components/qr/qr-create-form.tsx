@@ -3,26 +3,41 @@
 import { useActionState, useEffect, useState } from "react";
 import QRCode from "qrcode";
 import { createQrTokenAction, type ActionResult } from "@/lib/actions/ops";
+import { QrPrintPoster } from "@/components/qr/qr-print-poster";
 import { Button } from "@/components/ui/button";
 import { Input, Label } from "@/components/ui/input";
 import { ckb } from "@/lib/ckb";
 
 const initial: ActionResult & { token?: string } = {};
 const LAST_QR_KEY = "mo_last_qr_token";
+const LAST_QR_LABEL_KEY = "mo_last_qr_label";
+const LAST_QR_HOURS_KEY = "mo_last_qr_hours";
 
-export function QrCreateForm() {
+export function QrCreateForm({
+  companyName,
+  logoUrl,
+}: {
+  companyName?: string;
+  logoUrl?: string | null;
+}) {
   const [state, formAction, pending] = useActionState(
     createQrTokenAction,
     initial,
   );
   const [token, setToken] = useState<string | null>(null);
+  const [label, setLabel] = useState("سەرەکی");
+  const [hours, setHours] = useState(24);
   const [dataUrl, setDataUrl] = useState<string | null>(null);
   const [qrError, setQrError] = useState<string | null>(null);
 
   useEffect(() => {
     try {
       const saved = sessionStorage.getItem(LAST_QR_KEY);
+      const savedLabel = sessionStorage.getItem(LAST_QR_LABEL_KEY);
+      const savedHours = sessionStorage.getItem(LAST_QR_HOURS_KEY);
       if (saved) setToken(saved);
+      if (savedLabel) setLabel(savedLabel);
+      if (savedHours) setHours(Number(savedHours) || 0);
     } catch {
       // ignore
     }
@@ -33,11 +48,13 @@ export function QrCreateForm() {
       setToken(state.token);
       try {
         sessionStorage.setItem(LAST_QR_KEY, state.token);
+        sessionStorage.setItem(LAST_QR_LABEL_KEY, label);
+        sessionStorage.setItem(LAST_QR_HOURS_KEY, String(hours));
       } catch {
         // ignore
       }
     }
-  }, [state.token]);
+  }, [state.token, label, hours]);
 
   useEffect(() => {
     if (!token) {
@@ -45,7 +62,12 @@ export function QrCreateForm() {
       return;
     }
     setQrError(null);
-    void QRCode.toDataURL(token, { width: 280, margin: 2 })
+    void QRCode.toDataURL(token, {
+      width: 520,
+      margin: 2,
+      color: { dark: "#0f2744", light: "#ffffff" },
+      errorCorrectionLevel: "H",
+    })
       .then(setDataUrl)
       .catch(() => {
         setDataUrl(null);
@@ -53,12 +75,25 @@ export function QrCreateForm() {
       });
   }, [token]);
 
+  const expiresHint =
+    hours > 0
+      ? `ماوەی کارکردن: ${hours} کاتژمێر لە کاتی دروستکردنەوە`
+      : "ماوە: بێ کۆتایی (تا ناکارا بکرێت)";
+
   return (
-    <div className="grid gap-6 lg:grid-cols-2">
-      <form action={formAction} className="panel space-y-4 p-5">
+    <div className="grid gap-6 lg:grid-cols-[minmax(0,22rem)_1fr]">
+      <form
+        action={formAction}
+        className="panel space-y-4 p-5 print:hidden"
+        onSubmit={(e) => {
+          const fd = new FormData(e.currentTarget);
+          setLabel(String(fd.get("label") || "سەرەکی").trim() || "سەرەکی");
+          setHours(Number(fd.get("hours") || 0));
+        }}
+      >
         <h2 className="text-lg font-semibold">دروستکردنی کۆدی QR</h2>
         <div>
-          <Label htmlFor="label">ناو</Label>
+          <Label htmlFor="label">ناو / شوێن</Label>
           <Input id="label" name="label" defaultValue="سەرەکی" />
         </div>
         <div>
@@ -77,58 +112,55 @@ export function QrCreateForm() {
         {state.success && (
           <p className="text-sm text-brand-700">{state.success}</p>
         )}
-        <Button type="submit" disabled={pending}>
-          {pending ? ckb.loading : "دروستکردن"}
+        <Button type="submit" disabled={pending} className="w-full">
+          {pending ? ckb.loading : "دروستکردنی QR"}
         </Button>
       </form>
 
-      <div className="panel flex flex-col items-center justify-center gap-3 p-5 print:border-0 print:shadow-none">
+      <div className="space-y-4">
         {token ? (
           <>
-            {dataUrl ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={dataUrl}
-                alt="QR"
-                className="rounded-xl border border-line bg-white p-3 print:border-0"
+            <div className="qr-print-screen panel overflow-hidden p-4 md:p-6">
+              <QrPrintPoster
+                dataUrl={dataUrl}
+                token={token}
+                label={label}
+                companyName={companyName}
+                logoUrl={logoUrl}
+                expiresHint={expiresHint}
               />
-            ) : (
-              <div className="flex h-[280px] w-[280px] items-center justify-center rounded-xl border border-dashed border-line text-sm text-ink-muted">
-                {qrError || "وێنە بار دەبێت..."}
-              </div>
-            )}
-            <p
-              className="break-all text-center text-xs text-ink-muted"
-              dir="ltr"
-            >
-              {token}
-            </p>
-            <p className="text-sm text-ink-muted print:hidden">
-              ئەم کۆدە چاپ بکە یان لە مۆبایل پیشانی کارمەند بدە
-            </p>
-            <div className="flex gap-2 print:hidden">
-              <Button
-                type="button"
-                variant="secondary"
-                onClick={() => window.print()}
-              >
-                چاپکردن
+              {qrError ? (
+                <p className="mt-3 text-center text-sm text-red-600 print:hidden">
+                  {qrError}
+                </p>
+              ) : null}
+            </div>
+
+            <div className="flex flex-wrap gap-2 print:hidden">
+              <Button type="button" onClick={() => window.print()}>
+                چاپکردنی پۆستەر
               </Button>
               <Button
                 type="button"
-                variant="ghost"
+                variant="secondary"
                 onClick={() => {
                   void navigator.clipboard.writeText(token);
                 }}
               >
-                کۆپیکردن
+                کۆپیکردنی کۆد
               </Button>
             </div>
+            <p
+              className="break-all text-xs text-ink-muted print:hidden"
+              dir="ltr"
+            >
+              {token}
+            </p>
           </>
         ) : (
-          <p className="text-sm text-ink-muted">
-            دوای دروستکردن QR لێرە دەردەکەوێت
-          </p>
+          <div className="panel flex min-h-[28rem] items-center justify-center p-8 text-center text-sm text-ink-muted print:hidden">
+            دوای دروستکردن، پۆستەری جوانی چاپ لێرە دەردەکەوێت
+          </div>
         )}
       </div>
     </div>

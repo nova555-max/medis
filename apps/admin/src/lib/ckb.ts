@@ -55,6 +55,8 @@ export const ckb = {
   createWorkspace: "دروستکردنی شوێنی کاری کۆمپانیا",
   alreadyHaveAccount: "هەژمارت هەیە؟",
   noAccount: "هەژمارت نییە؟",
+  forgotPassword: "وشەی نهێنیت لەبیرچووە؟",
+  resetPassword: "گۆڕینی وشەی نهێنی",
   registerHint: "هەژمارێکی نوێ تەنها بۆ کۆمپانیای خۆت دروست دەکات — داتای کۆمپانیای تر نابینرێت.",
   employeeOnlyMobile: "کارمەندان تەنها لە ئەپی مۆبایل دەتوانن بچنە ژوورەوە.",
   accessDenied: "دەستگەیشتن ڕەتکرایەوە",

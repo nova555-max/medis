@@ -47,6 +47,11 @@ export async function reviewLeaveAction(
   const ctx = await requireAdmin();
   if (ctx.error) return { error: ctx.error };
 
+  const trimmed = (note || "").trim();
+  if (status === "rejected" && !trimmed) {
+    return { error: "بۆ ڕەتکردنەوە هۆکار پێویستە." };
+  }
+
   const { data: leave } = await ctx.supabase
     .from("leave_requests")
     .select("id, employee_id, employees(user_id)")
@@ -56,26 +61,50 @@ export async function reviewLeaveAction(
   const { error } = await ctx.supabase.rpc("admin_review_leave", {
     p_leave_id: id,
     p_status: status,
-    p_note: note || null,
+    p_note: trimmed || null,
   });
 
-  if (error) return { error: "پێداچوونەوە سەرنەکەوت." };
+  if (error) {
+    const msg = error.message || "";
+    if (msg.includes("review note required")) {
+      return { error: "بۆ ڕەتکردنەوە هۆکار پێویستە." };
+    }
+    if (msg.includes("insufficient leave balance")) {
+      return { error: "باڵانسی مۆڵەت بەس نییە بۆ پەسەندکردن." };
+    }
+    return { error: "پێداچوونەوە سەرنەکەوت." };
+  }
 
   const emp = leave?.employees as { user_id?: string } | null;
   await pushToUser(
     emp?.user_id,
     status === "approved" ? "مۆڵەت پەسەندکرا" : "مۆڵەت ڕەتکرایەوە",
-    status === "approved"
-      ? "داواکاری مۆڵەتەکەت پەسەندکرا."
-      : "داواکاری مۆڵەتەکەت ڕەتکرایەوە.",
+    trimmed ||
+      (status === "approved"
+        ? "داواکاری مۆڵەتەکەت پەسەندکرا."
+        : "داواکاری مۆڵەتەکەت ڕەتکرایەوە."),
     { type: "leave_review", leaveId: id, status },
   );
 
   revalidatePath("/leave");
   revalidatePath("/notifications");
+  revalidatePath("/employee/leave");
   return {
     success: status === "approved" ? "مۆڵەت پەسەندکرا." : "مۆڵەت ڕەتکرایەوە.",
   };
+}
+
+export async function reviewLeaveFormAction(
+  _prev: ActionResult,
+  formData: FormData,
+): Promise<ActionResult> {
+  const id = String(formData.get("leaveId") || "");
+  const status = String(formData.get("status") || "") as "approved" | "rejected";
+  const note = String(formData.get("note") || "");
+  if (!id || (status !== "approved" && status !== "rejected")) {
+    return { error: "داواکاری نادروستە." };
+  }
+  return reviewLeaveAction(id, status, note);
 }
 
 export async function createQrTokenAction(

@@ -58,7 +58,12 @@ export async function updateSession(request: NextRequest) {
   const isEmployeeLogin = path === "/employee/login";
   const isEmployeeBlocked = path === "/employee/desktop-blocked";
   const isAdminAuth =
-    path.startsWith("/login") || path.startsWith("/register");
+    path.startsWith("/login") ||
+    path.startsWith("/register") ||
+    path.startsWith("/forgot-password") ||
+    path.startsWith("/verify-otp") ||
+    path.startsWith("/reset-password") ||
+    path.startsWith("/auth/");
   const actionRequest = isServerAction(request);
   const allowDesktopEmployee =
     process.env.ALLOW_EMPLOYEE_DESKTOP === "1" ||
@@ -123,7 +128,13 @@ export async function updateSession(request: NextRequest) {
   }
 
   if (isAdminAuth) {
-    if (user && !actionRequest) {
+    const isPasswordFlow =
+      path.startsWith("/forgot-password") ||
+      path.startsWith("/verify-otp") ||
+      path.startsWith("/reset-password") ||
+      path.startsWith("/auth/");
+
+    if (user && !actionRequest && !isPasswordFlow) {
       const { data: profile } = await supabase
         .from("profiles")
         .select("role, is_active")

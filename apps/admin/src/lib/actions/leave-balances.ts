@@ -26,12 +26,28 @@ export async function upsertLeaveBalanceAction(
   }
 
   const employeeId = String(formData.get("employeeId") || "").trim();
-  const leaveTypeId = String(formData.get("leaveTypeId") || "").trim();
   const year = Number(formData.get("year") || new Date().getFullYear());
+  const seedFromTypes = String(formData.get("seedFromTypes") || "") === "1";
+
+  if (!employeeId) return { error: "زانیاری نادروستە." };
+
+  if (seedFromTypes) {
+    const { error } = await supabase.rpc("ensure_leave_balances", {
+      p_employee_id: employeeId,
+      p_year: year,
+    });
+    if (error) return { error: "دروستکردنی باڵانس سەرنەکەوت." };
+    revalidatePath(`/employees/${employeeId}`);
+    revalidatePath("/leave");
+    revalidatePath("/employee/leave");
+    return { success: "باڵانس لەسەر یاسای جۆرەکانی مۆڵەت دروستکرا." };
+  }
+
+  const leaveTypeId = String(formData.get("leaveTypeId") || "").trim();
   const entitled = Number(formData.get("entitledDays") || 0);
   const used = Number(formData.get("usedDays") || 0);
 
-  if (!employeeId || !leaveTypeId) return { error: "زانیاری نادروستە." };
+  if (!leaveTypeId) return { error: "زانیاری نادروستە." };
   if (entitled < 0 || used < 0) return { error: "ژمارەکان نابێت نەرێنی بن." };
 
   const remaining = Math.max(entitled - used, 0);

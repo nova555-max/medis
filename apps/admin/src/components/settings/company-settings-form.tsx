@@ -19,12 +19,15 @@ type Company = {
   late_fine_enabled: boolean;
   late_fine_amount: number;
   late_fine_after_minutes: number;
+  late_fine_currency: "IQD" | "USD";
   qr_required: boolean;
   selfie_required: boolean;
   weekly_off_dows: number[];
   overtime_rate_per_hour: number;
+  overtime_currency: "IQD" | "USD";
   absence_fine_enabled: boolean;
   absence_fine_amount: number;
+  absence_fine_currency: "IQD" | "USD";
   absence_fine_mode: "fixed" | "daily_wage";
 };
 
@@ -82,6 +85,9 @@ export function CompanySettingsForm({
   const [fineEnabled, setFineEnabled] = useState(company.late_fine_enabled);
   const [absenceFineEnabled, setAbsenceFineEnabled] = useState(
     company.absence_fine_enabled,
+  );
+  const [moneyCurrency, setMoneyCurrency] = useState<"IQD" | "USD">(
+    company.late_fine_currency === "USD" ? "USD" : "IQD",
   );
   const [weeklyOff, setWeeklyOff] = useState<number[]>(
     company.weekly_off_dows?.length ? company.weekly_off_dows : [5],
@@ -220,6 +226,25 @@ export function CompanySettingsForm({
         </p>
       </div>
 
+      <div className="md:col-span-2">
+        <Label htmlFor="moneyCurrency">دراوی غەرامە و کاتی زیادە</Label>
+        <select
+          id="moneyCurrency"
+          name="moneyCurrency"
+          value={moneyCurrency}
+          onChange={(e) =>
+            setMoneyCurrency(e.target.value === "USD" ? "USD" : "IQD")
+          }
+          className="mt-1 w-full max-w-xs rounded-xl border border-line bg-surface-elevated px-3.5 py-2.5 text-sm"
+        >
+          <option value="IQD">{currencyLabel("IQD")}</option>
+          <option value="USD">{currencyLabel("USD")}</option>
+        </select>
+        <p className="mt-1 text-xs text-ink-muted">
+          ئەدمین بە دڵی خۆی دینار یان دۆلار هەڵدەبژێرێت بۆ هەموو بڕەکان
+        </p>
+      </div>
+
       <label className="flex items-center gap-2 text-sm md:col-span-2">
         <input
           type="checkbox"
@@ -248,7 +273,7 @@ export function CompanySettingsForm({
       </div>
       <div>
         <Label htmlFor="lateFineAmount">
-          بڕی غەرامە ({currencyLabel("IQD")} / USD)
+          بڕی غەرامە ({currencyLabel(moneyCurrency)})
         </Label>
         <Input
           id="lateFineAmount"
@@ -315,7 +340,7 @@ export function CompanySettingsForm({
 
       <div>
         <Label htmlFor="overtimeRatePerHour">
-          نرخی کاتی زیادە / کاتژمێر ({currencyLabel("IQD")})
+          نرخی کاتی زیادە / کاتژمێر ({currencyLabel(moneyCurrency)})
         </Label>
         <Input
           id="overtimeRatePerHour"
@@ -341,7 +366,9 @@ export function CompanySettingsForm({
       </label>
 
       <div>
-        <Label htmlFor="absenceFineAmount">بڕی غەرامەی غەیب</Label>
+        <Label htmlFor="absenceFineAmount">
+          بڕی غەرامەی غەیب ({currencyLabel(moneyCurrency)})
+        </Label>
         <Input
           id="absenceFineAmount"
           name="absenceFineAmount"
@@ -353,6 +380,9 @@ export function CompanySettingsForm({
           dir="ltr"
           className="text-left"
         />
+        <p className="mt-1 text-xs text-ink-muted">
+          تەنها بۆ جۆری «بڕی جێگیر» بەکاردێت
+        </p>
       </div>
       <div>
         <Label htmlFor="absenceFineMode">جۆری غەرامەی غەیب</Label>

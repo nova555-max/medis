@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useMemo, useState } from "react";
 import { addPayrollItemAction, type ActionResult } from "@/lib/actions/payroll";
 import { Button } from "@/components/ui/button";
 import { Input, Label } from "@/components/ui/input";
@@ -25,8 +25,15 @@ export function PayrollItemForm({
     addPayrollItemAction,
     initial,
   );
+  const [employeeId, setEmployeeId] = useState("");
+  const [currency, setCurrency] = useState("IQD");
   const today = new Date().toISOString().slice(0, 10);
   const isFine = kind === "fine";
+
+  const selected = useMemo(
+    () => employees.find((e) => e.id === employeeId),
+    [employees, employeeId],
+  );
 
   return (
     <form action={formAction} className="panel space-y-4 p-5">
@@ -46,6 +53,13 @@ export function PayrollItemForm({
           id={`${kind}-employee`}
           name="employeeId"
           required
+          value={employeeId}
+          onChange={(e) => {
+            const id = e.target.value;
+            setEmployeeId(id);
+            const emp = employees.find((x) => x.id === id);
+            setCurrency(emp?.currency === "USD" ? "USD" : "IQD");
+          }}
           className="w-full rounded-xl border border-line bg-surface-elevated px-3.5 py-2.5 text-sm"
         >
           <option value="">هەڵبژێرە</option>
@@ -63,7 +77,9 @@ export function PayrollItemForm({
           id={`${kind}-title`}
           name="title"
           required
-          placeholder={isFine ? "بۆ نموونە: دواکەوتن" : "بۆ نموونە: پاداشتی کارکردن"}
+          placeholder={
+            isFine ? "بۆ نموونە: دواکەوتن" : "بۆ نموونە: پاداشتی کارکردن"
+          }
         />
       </div>
 
@@ -87,12 +103,18 @@ export function PayrollItemForm({
           <select
             id={`${kind}-currency`}
             name="currency"
-            defaultValue="IQD"
+            value={currency}
+            onChange={(e) => setCurrency(e.target.value)}
             className="w-full rounded-xl border border-line bg-surface-elevated px-3.5 py-2.5 text-sm"
           >
             <option value="IQD">{currencyLabel("IQD")}</option>
             <option value="USD">{currencyLabel("USD")}</option>
           </select>
+          {selected ? (
+            <p className="mt-1 text-xs text-ink-muted">
+              دەتوانیت بگۆڕیت بۆ دینار یان دۆلار
+            </p>
+          ) : null}
         </div>
         <div>
           <Label htmlFor={`${kind}-date`}>بەروار</Label>
@@ -121,8 +143,11 @@ export function PayrollItemForm({
       </div>
 
       {state.error && <p className="text-sm text-red-600">{state.error}</p>}
-      {state.success && <p className="text-sm text-brand-700">{state.success}</p>}
-      <Button type="submit" disabled={pending} variant={isFine ? "danger" : "primary"}>
+      {state.success && (
+        <p className="text-sm text-brand-700">{state.success}</p>
+      )}
+
+      <Button type="submit" disabled={pending}>
         {pending ? ckb.loading : isFine ? "تۆماری غەرامە" : "تۆماری پاداشت"}
       </Button>
     </form>

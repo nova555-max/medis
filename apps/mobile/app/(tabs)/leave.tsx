@@ -20,7 +20,21 @@ type LeaveRow = {
   days_count: number;
   status: string;
   reason: string | null;
+  review_note: string | null;
   leave_types: { name_ckb: string } | null;
+};
+type Balance = {
+  remaining_days: number;
+  used_days: number;
+  entitled_days: number;
+  leave_types: { name_ckb: string } | null;
+};
+
+const statusLabel: Record<string, string> = {
+  pending: "چاوەڕوان",
+  approved: "پەسەندکراو",
+  rejected: "ڕەتکراوە",
+  cancelled: "هەڵوەشاوە",
 };
 
 export default function LeaveScreen() {
@@ -28,6 +42,7 @@ export default function LeaveScreen() {
   const { profile } = useAuth();
   const [types, setTypes] = useState<LeaveType[]>([]);
   const [rows, setRows] = useState<LeaveRow[]>([]);
+  const [balances, setBalances] = useState<Balance[]>([]);
   const [employeeId, setEmployeeId] = useState<string | null>(null);
   const [companyId, setCompanyId] = useState<string | null>(null);
   const [leaveTypeId, setLeaveTypeId] = useState("");
@@ -52,7 +67,13 @@ export default function LeaveScreen() {
     setEmployeeId(emp.id);
     setCompanyId(emp.company_id);
 
-    const [{ data: t }, { data: r }] = await Promise.all([
+    const year = new Date().getFullYear();
+    await supabase.rpc("ensure_leave_balances", {
+      p_employee_id: emp.id,
+      p_year: year,
+    });
+
+    const [{ data: t }, { data: r }, { data: b }] = await Promise.all([
       supabase
         .from("leave_types")
         .select("id, name_ckb")
@@ -60,14 +81,22 @@ export default function LeaveScreen() {
         .eq("is_active", true),
       supabase
         .from("leave_requests")
-        .select("id, start_date, end_date, days_count, status, reason, leave_types(name_ckb)")
+        .select(
+          "id, start_date, end_date, days_count, status, reason, review_note, leave_types(name_ckb)",
+        )
         .eq("employee_id", emp.id)
         .order("created_at", { ascending: false })
         .limit(30),
+      supabase
+        .from("leave_balances")
+        .select("remaining_days, used_days, entitled_days, leave_types(name_ckb)")
+        .eq("employee_id", emp.id)
+        .eq("year", year),
     ]);
     setTypes((t as LeaveType[]) || []);
     if (t?.[0]) setLeaveTypeId(t[0].id);
     setRows((r as unknown as LeaveRow[]) || []);
+    setBalances((b as unknown as Balance[]) || []);
     setLoading(false);
   }
 
@@ -88,6 +117,27 @@ export default function LeaveScreen() {
       Math.floor((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1;
     if (days < 1) {
       setMessage("بەروارەکان نادروستن");
+      setBusy(false);
+      return;
+    }
+
+    const year = start.getFullYear();
+    await supabase.rpc("ensure_leave_balances", {
+      p_employee_id: employeeId,
+      p_year: year,
+    });
+
+    const { data: available } = await supabase.rpc("leave_available_days", {
+      p_employee_id: employeeId,
+      p_leave_type_id: leaveTypeId,
+      p_year: year,
+      p_exclude_request_id: null,
+    });
+
+    if (available != null && Number(available) < days) {
+      setMessage(
+        `باڵانسی مۆڵەت بەس نییە. ماوە: ${Number(available)} ڕۆژ، داواکراو: ${days} ڕۆژ.`,
+      );
       setBusy(false);
       return;
     }
@@ -122,6 +172,30 @@ export default function LeaveScreen() {
 
   return (
     <ScrollView style={{ flex: 1, backgroundColor: colors.bg }} contentContainerStyle={{ padding: 16, gap: 12 }}>
+      {balances.map((b, i) => {
+        const name = b.leave_types?.name_ckb || "مۆڵەت";
+        return (
+          <View
+            key={i}
+            style={{
+              backgroundColor: colors.card,
+              borderRadius: 16,
+              borderWidth: 1,
+              borderColor: colors.line,
+              padding: 14,
+            }}
+          >
+            <Text style={{ color: colors.muted, textAlign: "right" }}>{name}</Text>
+            <Text style={{ color: colors.ink, fontWeight: "700", fontSize: 18, textAlign: "right", marginTop: 4 }}>
+              ماوە: {Number(b.remaining_days)} ڕۆژ
+            </Text>
+            <Text style={{ color: colors.muted, textAlign: "right", marginTop: 2, fontSize: 12 }}>
+              بەکارهاتوو {Number(b.used_days)} لە {Number(b.entitled_days)}
+            </Text>
+          </View>
+        );
+      })}
+
       <View
         style={{
           backgroundColor: colors.card,
@@ -230,8 +304,16 @@ export default function LeaveScreen() {
             {r.leave_types?.name_ckb || ckb.leave}
           </Text>
           <Text style={{ color: colors.muted, marginTop: 4, textAlign: "right" }}>
-            {r.start_date} → {r.end_date} · {r.status}
+            {r.start_date} → {r.end_date} · {statusLabel[r.status] || r.status}
           </Text>
+          {r.reason ? (
+            <Text style={{ color: colors.ink, marginTop: 6, textAlign: "right" }}>هۆکار: {r.reason}</Text>
+          ) : null}
+          {r.review_note ? (
+            <Text style={{ color: colors.muted, marginTop: 4, textAlign: "right" }}>
+              تێبینی ئەدمین: {r.review_note}
+            </Text>
+          ) : null}
         </View>
       ))}
     </ScrollView>

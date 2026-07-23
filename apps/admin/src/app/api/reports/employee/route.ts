@@ -27,7 +27,7 @@ export async function GET(request: NextRequest) {
   const { data: emp } = await supabase
     .from("employees")
     .select(
-      "id, full_name, employee_code, email, phone, hire_date, photo_url, departments(name), positions(name), branches(name)",
+      "id, full_name, employee_code, email, phone, hire_date, photo_url, departments(name), positions(name)",
     )
     .eq("id", employeeId)
     .maybeSingle();
@@ -64,7 +64,6 @@ export async function GET(request: NextRequest) {
 
   const dept = emp.departments as { name?: string } | null;
   const pos = emp.positions as { name?: string } | null;
-  const branch = emp.branches as { name?: string } | null;
 
   const meta = buildMeta(
     `ڕاپۆرتی کارمەند — ${emp.full_name}`,
@@ -88,7 +87,6 @@ export async function GET(request: NextRequest) {
         { field: "ID", value: emp.id },
         { field: "Department", value: dept?.name || "" },
         { field: "Position", value: pos?.name || "" },
-        { field: "Branch", value: branch?.name || "" },
         { field: "Hire date", value: emp.hire_date || "" },
         { field: "Phone", value: emp.phone || "" },
         { field: "Email", value: emp.email || "" },
@@ -119,7 +117,6 @@ export async function GET(request: NextRequest) {
         ["Code", emp.employee_code],
         ["Department", dept?.name || "—"],
         ["Position", pos?.name || "—"],
-        ["Branch", branch?.name || "—"],
         ["Hire date", emp.hire_date || "—"],
         ["Phone", emp.phone || "—"],
         ["Email", emp.email || "—"],

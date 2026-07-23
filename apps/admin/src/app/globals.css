@@ -1,4 +1,4 @@
-@tailwind base;
+﻿@tailwind base;
 @tailwind components;
 @tailwind utilities;
 
@@ -167,7 +167,7 @@ body {
   }
 
   .report-footer::after {
-    content: "لاپەڕە " counter(page);
+    content: "Ù„Ø§Ù¾Û•Ú•Û• " counter(page);
   }
 }
 
@@ -282,4 +282,316 @@ body {
   }
 }
 
+/* â”€â”€â”€ QR attendance poster (screen + print) â”€â”€â”€ */
+.qr-print-poster {
+  width: 100%;
+  max-width: 420px;
+  margin: 0 auto;
+  color: #0f2744;
+  font-family: Tahoma, "Segoe UI", sans-serif;
+}
+
+.qr-print-poster__frame {
+  position: relative;
+  overflow: hidden;
+  border-radius: 24px;
+  border: 1px solid #c5d4e6;
+  background:
+    radial-gradient(circle at 12% 8%, rgba(42, 90, 143, 0.12), transparent 42%),
+    radial-gradient(circle at 90% 95%, rgba(14, 116, 144, 0.1), transparent 40%),
+    linear-gradient(165deg, #f7fafc 0%, #eef4fa 55%, #e8f0f7 100%);
+  padding: 1.5rem 1.35rem 1.25rem;
+  box-shadow: 0 18px 40px -24px rgba(15, 39, 68, 0.45);
+}
+
+.qr-print-poster__corner {
+  position: absolute;
+  width: 28px;
+  height: 28px;
+  border: 2.5px solid #2a5a8f;
+  opacity: 0.55;
+  pointer-events: none;
+}
+.qr-print-poster__corner--tl {
+  top: 14px;
+  right: 14px;
+  border-left: 0;
+  border-bottom: 0;
+  border-radius: 0 10px 0 0;
+}
+.qr-print-poster__corner--tr {
+  top: 14px;
+  left: 14px;
+  border-right: 0;
+  border-bottom: 0;
+  border-radius: 10px 0 0 0;
+}
+.qr-print-poster__corner--bl {
+  bottom: 14px;
+  right: 14px;
+  border-left: 0;
+  border-top: 0;
+  border-radius: 0 0 10px 0;
+}
+.qr-print-poster__corner--br {
+  bottom: 14px;
+  left: 14px;
+  border-right: 0;
+  border-top: 0;
+  border-radius: 0 0 0 10px;
+}
+
+.qr-print-poster__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 1.1rem;
+}
+
+.qr-print-poster__brand {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  min-width: 0;
+}
+
+.qr-print-poster__logo {
+  width: 48px;
+  height: 48px;
+  border-radius: 14px;
+  object-fit: contain;
+  background: #fff;
+  border: 1px solid #d6dfeb;
+}
+
+.qr-print-poster__logo-fallback {
+  width: 48px;
+  height: 48px;
+  border-radius: 14px;
+  display: grid;
+  place-items: center;
+  background: linear-gradient(145deg, #2a5a8f, #1e446d);
+  color: #fff;
+  font-weight: 800;
+  font-size: 1.15rem;
+  box-shadow: 0 8px 18px -10px rgba(42, 90, 143, 0.8);
+}
+
+.qr-print-poster__company {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+}
+
+.qr-print-poster__tagline {
+  margin: 0.15rem 0 0;
+  font-size: 0.75rem;
+  color: #5a6c84;
+}
+
+.qr-print-poster__badge {
+  flex-shrink: 0;
+  border-radius: 999px;
+  background: #2a5a8f;
+  color: #fff;
+  font-size: 0.7rem;
+  font-weight: 700;
+  padding: 0.35rem 0.7rem;
+}
+
+.qr-print-poster__hero {
+  text-align: center;
+  margin-bottom: 1rem;
+}
+
+.qr-print-poster__title {
+  margin: 0;
+  font-size: 1.45rem;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  color: #0f2744;
+}
+
+.qr-print-poster__subtitle {
+  margin: 0.4rem 0 0;
+  font-size: 0.85rem;
+  line-height: 1.6;
+  color: #5a6c84;
+}
+
+.qr-print-poster__label {
+  display: inline-block;
+  margin: 0.75rem 0 0;
+  padding: 0.25rem 0.85rem;
+  border-radius: 999px;
+  background: rgba(42, 90, 143, 0.1);
+  color: #2a5a8f;
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.qr-print-poster__code-wrap {
+  display: flex;
+  justify-content: center;
+  margin: 0.25rem 0 1.15rem;
+}
+
+.qr-print-poster__code-ring {
+  padding: 0.85rem;
+  border-radius: 22px;
+  background: #fff;
+  border: 1px solid #d6dfeb;
+  box-shadow:
+    0 0 0 6px rgba(42, 90, 143, 0.06),
+    0 14px 28px -18px rgba(15, 39, 68, 0.35);
+}
+
+.qr-print-poster__code {
+  display: block;
+  width: 240px;
+  height: 240px;
+  max-width: 100%;
+}
+
+.qr-print-poster__code-placeholder {
+  width: 240px;
+  height: 240px;
+  display: grid;
+  place-items: center;
+  color: #5a6c84;
+}
+
+.qr-print-poster__steps {
+  list-style: none;
+  margin: 0 0 1rem;
+  padding: 0;
+  display: grid;
+  gap: 0.45rem;
+}
+
+.qr-print-poster__steps li {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.72);
+  border: 1px solid #dce6f1;
+  padding: 0.55rem 0.75rem;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #1a334f;
+}
+
+.qr-print-poster__steps span {
+  width: 1.55rem;
+  height: 1.55rem;
+  border-radius: 999px;
+  display: grid;
+  place-items: center;
+  background: #2a5a8f;
+  color: #fff;
+  font-size: 0.72rem;
+  font-weight: 800;
+  flex-shrink: 0;
+}
+
+.qr-print-poster__expiry {
+  margin: 0 0 0.85rem;
+  text-align: center;
+  font-size: 0.78rem;
+  color: #9a3412;
+  background: #fff7ed;
+  border: 1px solid #fed7aa;
+  border-radius: 12px;
+  padding: 0.55rem 0.75rem;
+}
+
+.qr-print-poster__footer {
+  border-top: 1px dashed #c5d4e6;
+  padding-top: 0.85rem;
+  text-align: center;
+}
+
+.qr-print-poster__footer-note {
+  margin: 0;
+  font-size: 0.72rem;
+  line-height: 1.55;
+  color: #5a6c84;
+}
+
+.qr-print-poster__token {
+  margin: 0.45rem 0 0;
+  font-size: 0.65rem;
+  letter-spacing: 0.04em;
+  color: #94a3b8;
+  font-family: Consolas, Monaco, monospace;
+}
+
+@media print {
+  @page {
+    size: A4 portrait;
+    margin: 10mm;
+  }
+
+  body * {
+    visibility: hidden !important;
+  }
+
+  .qr-print-screen,
+  .qr-print-screen * {
+    visibility: visible !important;
+  }
+
+  .qr-print-screen {
+    position: fixed !important;
+    inset: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: none !important;
+    box-shadow: none !important;
+    background: #fff !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    z-index: 9999 !important;
+  }
+
+  .qr-print-poster {
+    max-width: 170mm;
+    width: 170mm;
+  }
+
+  .qr-print-poster__frame {
+    border-radius: 18px;
+    padding: 18mm 14mm 14mm;
+    box-shadow: none !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  .qr-print-poster__code {
+    width: 88mm;
+    height: 88mm;
+  }
+
+  .qr-print-poster__title {
+    font-size: 28pt;
+  }
+
+  .qr-print-poster__company {
+    font-size: 16pt;
+  }
+
+  .qr-print-poster__subtitle {
+    font-size: 11pt;
+  }
+
+  .qr-print-poster__steps li {
+    font-size: 11pt;
+    padding: 0.7rem 0.9rem;
+  }
+}
 

@@ -4,6 +4,30 @@ import { ckb } from "@/lib/ckb";
 
 export default async function QrPage() {
   const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  let companyName = "Media Office";
+  let logoUrl: string | null = null;
+
+  if (user) {
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("company_id")
+      .eq("id", user.id)
+      .maybeSingle();
+    if (profile?.company_id) {
+      const { data: company } = await supabase
+        .from("companies")
+        .select("name, logo_url")
+        .eq("id", profile.company_id)
+        .maybeSingle();
+      if (company?.name) companyName = company.name;
+      if (company?.logo_url) logoUrl = company.logo_url;
+    }
+  }
+
   const { data: tokens } = await supabase
     .from("qr_tokens")
     .select("id, label, is_active, expires_at, created_at")
@@ -12,14 +36,14 @@ export default async function QrPage() {
 
   return (
     <div className="space-y-6">
-      <div>
+      <div className="print:hidden">
         <h1 className="text-2xl font-bold md:text-3xl">{ckb.qr}</h1>
         <p className="mt-1 text-sm text-ink-muted">بەڕێوەبردنی کۆدی QR بۆ ئامادەبوون</p>
       </div>
 
-      <QrCreateForm />
+      <QrCreateForm companyName={companyName} logoUrl={logoUrl} />
 
-      <div className="panel overflow-x-auto">
+      <div className="panel overflow-x-auto print:hidden">
         <table className="w-full text-sm">
           <thead className="border-b border-line bg-surface-muted/60">
             <tr>

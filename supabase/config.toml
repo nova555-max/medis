@@ -11,5 +11,11 @@ major_version = 15
 [auth]
 enabled = true
 site_url = "http://localhost:3000"
-additional_redirect_urls = ["http://localhost:3000/**", "mediaoffice://**"]
+additional_redirect_urls = ["http://localhost:3000/**", "http://localhost:3000/auth/callback", "http://localhost:3000/reset-password", "mediaoffice://**"]
 enable_signup = true
+
+# Password recovery / OTP links expire after 15 minutes
+[auth.email]
+enable_signup = true
+otp_expiry = 900
+max_frequency = "60s"

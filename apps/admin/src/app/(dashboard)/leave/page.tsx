@@ -1,7 +1,13 @@
-import { reviewLeaveAction } from "@/lib/actions/ops";
-import { DeleteForm } from "@/components/org/delete-form";
+import { LeaveReviewForm } from "@/components/leave/leave-review-form";
 import { createClient } from "@/lib/supabase/server";
 import { ckb } from "@/lib/ckb";
+
+const statusLabel: Record<string, string> = {
+  pending: "چاوەڕوان",
+  approved: "پەسەندکراو",
+  rejected: "ڕەتکراوە",
+  cancelled: "هەڵوەشاوە",
+};
 
 export default async function LeavePage({
   searchParams,
@@ -15,7 +21,7 @@ export default async function LeavePage({
   const { data: rows } = await supabase
     .from("leave_requests")
     .select(
-      "id, start_date, end_date, days_count, reason, status, created_at, employees(full_name, employee_code), leave_types(name_ckb)",
+      "id, start_date, end_date, days_count, reason, status, review_note, created_at, employees(full_name, employee_code), leave_types(name_ckb)",
     )
     .eq("status", status)
     .order("created_at", { ascending: false });
@@ -24,7 +30,9 @@ export default async function LeavePage({
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold md:text-3xl">{ckb.leave}</h1>
-        <p className="mt-1 text-sm text-ink-muted">پەسەندکردن یان ڕەتکردنەوەی داواکاری مۆڵەت</p>
+        <p className="mt-1 text-sm text-ink-muted">
+          پەسەندکردن یان ڕەتکردنەوەی داواکاری مۆڵەت بەپێی باڵانسی ڕۆژەکان
+        </p>
       </div>
 
       <form className="panel flex gap-3 p-4">
@@ -50,34 +58,36 @@ export default async function LeavePage({
           rows!.map((r) => {
             const emp = r.employees as { full_name?: string; employee_code?: string } | null;
             const lt = r.leave_types as { name_ckb?: string } | null;
+            const summary = `${lt?.name_ckb || "مۆڵەت"} · ${r.start_date} → ${r.end_date} (${r.days_count} ڕۆژ)`;
+
+            if (status === "pending") {
+              return (
+                <LeaveReviewForm
+                  key={r.id}
+                  leaveId={r.id}
+                  employeeName={emp?.full_name || "کارمەند"}
+                  summary={summary}
+                  reason={r.reason}
+                />
+              );
+            }
+
             return (
               <div key={r.id} className="panel p-5">
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div>
                     <p className="font-semibold">{emp?.full_name}</p>
-                    <p className="text-sm text-ink-muted">
-                      {lt?.name_ckb} · {r.start_date} → {r.end_date} ({r.days_count} ڕۆژ)
-                    </p>
-                    {r.reason && <p className="mt-2 text-sm">{r.reason}</p>}
+                    <p className="text-sm text-ink-muted">{summary}</p>
+                    {r.reason && <p className="mt-2 text-sm">هۆکاری کارمەند: {r.reason}</p>}
+                    {r.review_note && (
+                      <p className="mt-2 text-sm text-ink-muted">
+                        تێبینی ئەدمین: {r.review_note}
+                      </p>
+                    )}
                   </div>
-                  {status === "pending" && (
-                    <div className="flex gap-2">
-                      <DeleteForm
-                        label="پەسەندکردن"
-                        action={async () => {
-                          "use server";
-                          await reviewLeaveAction(r.id, "approved");
-                        }}
-                      />
-                      <DeleteForm
-                        label="ڕەتکردنەوە"
-                        action={async () => {
-                          "use server";
-                          await reviewLeaveAction(r.id, "rejected");
-                        }}
-                      />
-                    </div>
-                  )}
+                  <span className="rounded-lg bg-surface-muted px-2.5 py-1 text-xs font-medium">
+                    {statusLabel[r.status] || r.status}
+                  </span>
                 </div>
               </div>
             );

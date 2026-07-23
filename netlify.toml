@@ -1,0 +1,11 @@
+[build]
+  base = "."
+  command = "npm run build --workspace=@media-office/admin"
+  publish = "apps/admin/.next"
+
+[build.environment]
+  NODE_VERSION = "20"
+  NPM_FLAGS = "--legacy-peer-deps"
+
+[[plugins]]
+  package = "@netlify/plugin-nextjs"

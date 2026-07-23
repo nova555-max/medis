@@ -47,7 +47,7 @@ export function LeaveBalancesPanel({
       <ul className="space-y-2">
         {balances.length === 0 ? (
           <li className="rounded-xl border border-line px-4 py-6 text-center text-sm text-ink-muted">
-            هێشتا باڵانس دیاری نەکراوە
+            هێشتا باڵانس دیاری نەکراوە — دوگمەی خوارەوە داگرە بۆ دروستکردن لەسەر بنەمای جۆرەکانی مۆڵەت
           </li>
         ) : (
           balances.map((b) => (
@@ -64,6 +64,15 @@ export function LeaveBalancesPanel({
           ))
         )}
       </ul>
+
+      <form action={formAction} className="flex flex-wrap gap-2">
+        <input type="hidden" name="employeeId" value={employeeId} />
+        <input type="hidden" name="year" value={year} />
+        <input type="hidden" name="seedFromTypes" value="1" />
+        <Button type="submit" variant="ghost" disabled={pending}>
+          دروستکردنی باڵانس لەسەر یاسا
+        </Button>
+      </form>
 
       <form action={formAction} className="grid gap-3 border-t border-line pt-4 md:grid-cols-4">
         <input type="hidden" name="employeeId" value={employeeId} />

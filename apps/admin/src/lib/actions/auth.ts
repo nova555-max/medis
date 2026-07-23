@@ -3,6 +3,7 @@
 import { redirect } from "next/navigation";
 import { registerCompanySchema, loginSchema } from "@media-office/shared";
 import { createClient } from "@/lib/supabase/server";
+import { getAdminRegistrationStatus } from "@/lib/auth/admin-slots";
 
 function slugify(name: string) {
   const base = name
@@ -42,7 +43,6 @@ export async function loginAction(
     return { error: ENV_ERROR };
   }
 
-  // پاککردنەوەی سێشنی پێشوو (بۆ نموونە کارمەند) پێش لۆگینی ئەدمین
   await supabase.auth.signOut();
 
   const { error } = await supabase.auth.signInWithPassword(parsed.data);
@@ -80,6 +80,13 @@ export async function registerAction(
   _prev: AuthState,
   formData: FormData,
 ): Promise<AuthState> {
+  const slots = await getAdminRegistrationStatus();
+  if (!slots.open) {
+    return {
+      error: "دروستکردنی هەژماری ئەدمین داخراوە. تەنها ٢ هەژمار ڕێگەپێدراوە.",
+    };
+  }
+
   const parsed = registerCompanySchema.safeParse({
     companyName: formData.get("companyName"),
     fullName: formData.get("fullName"),
@@ -100,6 +107,13 @@ export async function registerAction(
   }
 
   const { companyName, fullName, email, password, phone } = parsed.data;
+
+  const slotsAgain = await getAdminRegistrationStatus();
+  if (!slotsAgain.open) {
+    return {
+      error: "دروستکردنی هەژماری ئەدمین داخراوە. تەنها ٢ هەژمار ڕێگەپێدراوە.",
+    };
+  }
 
   const { data: authData, error: signUpError } = await supabase.auth.signUp({
     email,
@@ -133,6 +147,12 @@ export async function registerAction(
   );
 
   if (rpcError || !companyId) {
+    const msg = rpcError?.message || "";
+    if (msg.includes("admin registration closed")) {
+      return {
+        error: "دروستکردنی هەژماری ئەدمین داخراوە. تەنها ٢ هەژمار ڕێگەپێدراوە.",
+      };
+    }
     return {
       error:
         "هەژمار دروستبوو بەڵام شوێنی کاری کۆمپانیا سەرنەکەوت. پەیوەندی بە پشتگیری بکە.",

@@ -26,6 +26,15 @@ export async function getAdminRegistrationStatus(): Promise<AdminRegistrationSta
         const used = count ?? 0;
         return { used, maxAllowed, open: used < maxAllowed, known: true };
       }
+      // Retry without head in case the edge/runtime mishandles count-only
+      const { data, error: listError } = await service
+        .from("profiles")
+        .select("id")
+        .eq("role", "admin");
+      if (!listError) {
+        const used = data?.length ?? 0;
+        return { used, maxAllowed, open: used < maxAllowed, known: true };
+      }
     } catch {
       // fall through
     }

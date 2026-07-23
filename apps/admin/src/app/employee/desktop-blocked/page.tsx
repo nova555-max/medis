@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { ckb } from "@/lib/ckb";
 
 export default function EmployeeDesktopBlockedPage() {
@@ -10,6 +11,20 @@ export default function EmployeeDesktopBlockedPage() {
         <h1 className="text-2xl font-bold text-ink">{ckb.appName}</h1>
         <p className="text-ink-muted">{ckb.desktopBlocked}</p>
         <p className="text-sm text-ink-muted">{ckb.employeeOnlyMobile}</p>
+        <div className="flex flex-col gap-2 pt-2">
+          <Link
+            href="/employee/login"
+            className="rounded-xl bg-brand-600 px-4 py-2.5 text-sm font-medium text-white"
+          >
+            گەڕانەوە بۆ چوونەژوورەوەی کارمەند
+          </Link>
+          <Link
+            href="/login"
+            className="rounded-xl border border-line px-4 py-2.5 text-sm font-medium text-ink"
+          >
+            چوونەژوورەوەی ئەدمین
+          </Link>
+        </div>
       </div>
     </main>
   );

@@ -70,12 +70,14 @@ export function LoginForm({ registrationOpen = false }: { registrationOpen?: boo
         </Link>
       </p>
 
-      <p className="text-center text-sm text-ink-muted">
-        {ckb.noAccount}{" "}
-        <Link href="/register" className="font-medium text-brand-600 hover:underline">
-          {ckb.register}
-        </Link>
-      </p>
+      {registrationOpen ? (
+        <p className="text-center text-sm text-ink-muted">
+          {ckb.noAccount}{" "}
+          <Link href="/register" className="font-medium text-brand-600 hover:underline">
+            {ckb.register}
+          </Link>
+        </p>
+      ) : null}
     </form>
   );
 }

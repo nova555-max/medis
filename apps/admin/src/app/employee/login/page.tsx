@@ -15,6 +15,9 @@ export default function EmployeeLoginPage() {
             م
           </div>
           <h1 className="text-3xl font-bold">{ckb.appName}</h1>
+          <p className="mt-2 text-sm font-medium text-brand-700">
+            پەڕەی کارمەند — جیا لە ئەدمین
+          </p>
           <p className="mt-2 text-sm text-ink-muted">
             چوونەژوورەوە بە ئایدی ١٠ ژمارە و وشەی نهێنی (پیت و ژمارە)
           </p>

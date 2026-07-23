@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState } from "react";
+import { useActionState, useEffect } from "react";
 import { registerAction, type RegisterOtpState } from "@/lib/actions/register-otp";
 import { Button } from "@/components/ui/button";
 import { Input, Label } from "@/components/ui/input";
@@ -12,41 +12,21 @@ const initial: RegisterOtpState = {};
 export function RegisterForm() {
   const [state, formAction, pending] = useActionState(registerAction, initial);
 
+  useEffect(() => {
+    if (state.success === "ok") {
+      window.location.assign("/");
+    }
+  }, [state.success]);
+
   return (
     <form action={formAction} className="space-y-4">
       <p className="rounded-xl border border-brand-200 bg-brand-50 px-3 py-2 text-sm text-brand-800 dark:border-brand-800 dark:bg-brand-950/40 dark:text-brand-200">
         {ckb.registerHint}
       </p>
-      <p className="rounded-xl border border-line bg-surface-muted px-3 py-2 text-sm text-ink-muted">
-        دوای پڕکردنەوە، کۆدی ٦ ژمارەیی لەسەر شاشە دەردەکەوێت (پێویست بە دۆمەین ناکات).
-      </p>
 
       {state.error && (
         <div className="rounded-xl border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-700 dark:border-red-800 dark:bg-red-950/40 dark:text-red-300">
           {state.error}
-        </div>
-      )}
-
-      {state.success === "otp_sent" && state.inlineCode && (
-        <div className="space-y-3 rounded-xl border border-emerald-300 bg-emerald-50 px-3 py-3 text-sm text-emerald-950 dark:border-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-100">
-          {state.warning ? <p>{state.warning}</p> : null}
-          <p className="text-center text-xs opacity-80">کۆدی پشتڕاستکردنەوە</p>
-          <p
-            className="rounded-xl bg-white px-3 py-3 text-center text-3xl font-bold tracking-[0.35em] text-brand-700 dark:bg-surface-elevated"
-            dir="ltr"
-          >
-            {state.inlineCode}
-          </p>
-          <Link
-            href={`/verify-register?email=${encodeURIComponent(state.email || "")}${
-              state.expiresAt
-                ? `&expires=${encodeURIComponent(state.expiresAt)}`
-                : ""
-            }`}
-            className="inline-flex w-full justify-center rounded-xl bg-brand-600 px-4 py-2.5 text-sm font-medium text-white"
-          >
-            بەردەوامبوون — کۆدەکە لێرە بنووسە
-          </Link>
         </div>
       )}
 
@@ -81,7 +61,7 @@ export function RegisterForm() {
       </div>
 
       <Button type="submit" className="w-full" disabled={pending}>
-        {pending ? ckb.loading : "دروستکردنی کۆدی پشتڕاستکردنەوە"}
+        {pending ? ckb.loading : ckb.createWorkspace}
       </Button>
 
       <p className="text-center text-sm text-ink-muted">

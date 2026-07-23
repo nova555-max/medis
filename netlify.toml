@@ -6,9 +6,7 @@
 [build.environment]
   NODE_VERSION = "20"
   NPM_FLAGS = "--legacy-peer-deps"
-  MEDIA_OFFICE_BUILD_ID = "inline-otp-no-domain-v1"
-  # Without a verified domain, registration OTP is shown on screen (not emailed)
-  REGISTER_OTP_INLINE = "1"
+  MEDIA_OFFICE_BUILD_ID = "register-no-email-otp-v1"
 
 [[plugins]]
   package = "@netlify/plugin-nextjs"

@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState } from "react";
+import { useActionState, useEffect } from "react";
 import { registerAction, type AuthState } from "@/lib/actions/auth";
 import { Button } from "@/components/ui/button";
 import { Input, Label } from "@/components/ui/input";
@@ -11,6 +11,12 @@ const initial: AuthState = {};
 
 export function RegisterForm() {
   const [state, formAction, pending] = useActionState(registerAction, initial);
+
+  useEffect(() => {
+    if (state.success) {
+      window.location.assign("/");
+    }
+  }, [state.success]);
 
   return (
     <form action={formAction} className="space-y-4">

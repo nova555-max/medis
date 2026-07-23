@@ -24,6 +24,9 @@ export type RegisterOtpState = {
   success?: string;
   email?: string;
   expiresAt?: string;
+  /** Shown only when Resend cannot deliver (e.g. unverified domain / test mode) */
+  inlineCode?: string;
+  warning?: string;
 };
 
 const REG_COOKIE = "mo_reg_otp";
@@ -144,28 +147,50 @@ export async function registerAction(
   };
 
   try {
-    await sendRegistrationOtpEmail({
+    const sent = await sendRegistrationOtpEmail({
       to: email,
       code,
       companyName: parsed.data.companyName,
     });
-  } catch (e) {
-    const msg = e instanceof Error ? e.message : "";
-    if (msg.includes("RESEND_API_KEY")) {
+
+    await setPendingCookie(pending);
+
+    if (!sent.delivered) {
+      const msg = sent.errorMessage || "";
+      if (msg.includes("RESEND_API_KEY")) {
+        return {
+          error:
+            "ناردنی ئیمەیڵ ڕێکنەکراوە (RESEND_API_KEY). تکایە ڕێکخستنی Netlify بپشکنە.",
+        };
+      }
+      // Resend test mode / unverified domain: still allow verify with on-screen code
+      const testMode =
+        msg.toLowerCase().includes("own email") ||
+        msg.toLowerCase().includes("verify a domain");
       return {
-        error: "ناردنی ئیمەیڵ ڕێکنەکراوە (RESEND_API_KEY). تکایە ڕێکخستن بپشکنە.",
+        success: "otp_sent",
+        email,
+        expiresAt: new Date(expiresAt).toISOString(),
+        inlineCode: code,
+        warning: testMode
+          ? "Resend ئێستا ناتوانێت بۆ ئەم ئیمەیڵە بنێرێت (دۆمەین پشتڕاست نەکراوە). کۆدەکە لێرە بەکاربهێنە، یان دۆمەین لە resend.com/domains پشتڕاست بکە."
+          : `ئیمەیڵ نەنێردرا. کۆدەکە لێرە بەکاربهێنە. (${msg})`,
       };
     }
-    return { error: "ناردنی کۆدی ئیمەیڵ سەرنەکەوت. دووبارە هەوڵبدەرەوە." };
+
+    return {
+      success: "otp_sent",
+      email,
+      expiresAt: new Date(expiresAt).toISOString(),
+    };
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : "";
+    return {
+      error: msg
+        ? `ناردنی کۆدی ئیمەیڵ سەرنەکەوت: ${msg}`
+        : "ناردنی کۆدی ئیمەیڵ سەرنەکەوت. دووبارە هەوڵبدەرەوە.",
+    };
   }
-
-  await setPendingCookie(pending);
-
-  return {
-    success: "otp_sent",
-    email,
-    expiresAt: new Date(expiresAt).toISOString(),
-  };
 }
 
 /** Resend registration OTP (same pending form data in cookie). */
@@ -205,17 +230,24 @@ export async function resendRegisterOtpAction(
     lastSentAt: Date.now(),
   };
 
-  try {
-    await sendRegistrationOtpEmail({
-      to: pending.email,
-      code,
-      companyName: pending.companyName,
-    });
-  } catch {
-    return { error: "ناردنی کۆدی ئیمەیڵ سەرنەکەوت. دووبارە هەوڵبدەرەوە." };
-  }
+  const sent = await sendRegistrationOtpEmail({
+    to: pending.email,
+    code,
+    companyName: pending.companyName,
+  });
 
   await setPendingCookie(next);
+
+  if (!sent.delivered) {
+    return {
+      success: "otp_sent",
+      email: pending.email,
+      expiresAt: new Date(expiresAt).toISOString(),
+      inlineCode: code,
+      warning:
+        "ئیمەیڵ نەنێردرا. کۆدی نوێ لێرە بەکاربهێنە (یان دۆمەین لە Resend پشتڕاست بکە).",
+    };
+  }
 
   return {
     success: "otp_sent",

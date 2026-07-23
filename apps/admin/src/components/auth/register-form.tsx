@@ -13,14 +13,14 @@ export function RegisterForm() {
   const [state, formAction, pending] = useActionState(registerAction, initial);
 
   useEffect(() => {
-    if (state.success === "otp_sent" && state.email) {
+    if (state.success === "otp_sent" && state.email && !state.inlineCode) {
       const q = new URLSearchParams({
         email: state.email,
         ...(state.expiresAt ? { expires: state.expiresAt } : {}),
       });
       window.location.assign(`/verify-register?${q.toString()}`);
     }
-  }, [state.success, state.email, state.expiresAt]);
+  }, [state.success, state.email, state.expiresAt, state.inlineCode]);
 
   return (
     <form action={formAction} className="space-y-4">
@@ -34,6 +34,29 @@ export function RegisterForm() {
       {state.error && (
         <div className="rounded-xl border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-700 dark:border-red-800 dark:bg-red-950/40 dark:text-red-300">
           {state.error}
+        </div>
+      )}
+
+      {state.warning && state.inlineCode && (
+        <div className="space-y-3 rounded-xl border border-amber-300 bg-amber-50 px-3 py-3 text-sm text-amber-950 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-100">
+          <p>{state.warning}</p>
+          <p className="text-center text-xs text-ink-muted">کۆدی پشتڕاستکردنەوە</p>
+          <p
+            className="rounded-xl bg-white px-3 py-3 text-center text-3xl font-bold tracking-[0.35em] text-brand-700 dark:bg-surface-elevated"
+            dir="ltr"
+          >
+            {state.inlineCode}
+          </p>
+          <Link
+            href={`/verify-register?email=${encodeURIComponent(state.email || "")}${
+              state.expiresAt
+                ? `&expires=${encodeURIComponent(state.expiresAt)}`
+                : ""
+            }`}
+            className="inline-flex w-full justify-center rounded-xl bg-brand-600 px-4 py-2.5 text-sm font-medium text-white"
+          >
+            بەردەوامبوون بۆ نووسینی کۆد
+          </Link>
         </div>
       )}
 

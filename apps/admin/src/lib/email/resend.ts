@@ -73,10 +73,10 @@ async function sendOtpEmail(params: {
   companyName?: string;
   logoUrl?: string | null;
   purpose: "password" | "register";
-}) {
+}): Promise<{ delivered: boolean; errorMessage?: string }> {
   const apiKey = process.env.RESEND_API_KEY;
   if (!apiKey) {
-    throw new Error("RESEND_API_KEY_MISSING");
+    return { delivered: false, errorMessage: "RESEND_API_KEY_MISSING" };
   }
 
   const from =
@@ -89,8 +89,8 @@ async function sendOtpEmail(params: {
     to: params.to,
     subject:
       params.purpose === "register"
-        ? `کۆدی تۆمارکردن — ${companyName}`
-        : `کۆدی پشتڕاستکردنەوە — ${companyName}`,
+        ? `Register code — ${companyName}`
+        : `Verify code — ${companyName}`,
     html: otpEmailHtml({
       code: params.code,
       companyName,
@@ -101,8 +101,12 @@ async function sendOtpEmail(params: {
   });
 
   if (error) {
-    throw new Error(error.message || "EMAIL_SEND_FAILED");
+    return {
+      delivered: false,
+      errorMessage: error.message || "EMAIL_SEND_FAILED",
+    };
   }
+  return { delivered: true };
 }
 
 export async function sendPasswordOtpEmail(params: {
@@ -111,13 +115,16 @@ export async function sendPasswordOtpEmail(params: {
   companyName?: string;
   logoUrl?: string | null;
 }) {
-  return sendOtpEmail({ ...params, purpose: "password" });
+  const result = await sendOtpEmail({ ...params, purpose: "password" });
+  if (!result.delivered) {
+    throw new Error(result.errorMessage || "EMAIL_SEND_FAILED");
+  }
 }
 
 export async function sendRegistrationOtpEmail(params: {
   to: string;
   code: string;
   companyName?: string;
-}) {
+}): Promise<{ delivered: boolean; errorMessage?: string }> {
   return sendOtpEmail({ ...params, purpose: "register" });
 }

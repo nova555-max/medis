@@ -140,7 +140,20 @@ export function VerifyRegisterForm() {
 
       {resendState.success === "otp_sent" && !resendState.error && (
         <div className="rounded-xl border border-emerald-300 bg-emerald-50 px-3 py-2 text-sm text-emerald-800 dark:border-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-200">
-          کۆدی نوێ نێردرا.
+          {resendState.inlineCode
+            ? `کۆدی نوێ: ${resendState.inlineCode}`
+            : "کۆدی نوێ نێردرا."}
+        </div>
+      )}
+
+      {resendState.warning && (
+        <div className="rounded-xl border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-900 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-100">
+          {resendState.warning}
+          {resendState.inlineCode ? (
+            <p className="mt-2 text-center text-2xl font-bold tracking-[0.3em]" dir="ltr">
+              {resendState.inlineCode}
+            </p>
+          ) : null}
         </div>
       )}
 

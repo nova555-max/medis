@@ -72,11 +72,3 @@ export async function logoutAction() {
   await supabase.auth.signOut();
   redirect("/login");
 }
-
-// Re-export registration OTP flow
-export {
-  registerAction,
-  resendRegisterOtpAction,
-  verifyRegisterOtpAction,
-  type RegisterOtpState,
-} from "@/lib/actions/register-otp";

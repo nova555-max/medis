@@ -2,12 +2,12 @@
 
 import Link from "next/link";
 import { useActionState, useEffect } from "react";
-import { registerAction, type AuthState } from "@/lib/actions/auth";
+import { registerAction, type RegisterOtpState } from "@/lib/actions/register-otp";
 import { Button } from "@/components/ui/button";
 import { Input, Label } from "@/components/ui/input";
 import { ckb } from "@/lib/ckb";
 
-const initial: AuthState = {};
+const initial: RegisterOtpState = {};
 
 export function RegisterForm() {
   const [state, formAction, pending] = useActionState(registerAction, initial);

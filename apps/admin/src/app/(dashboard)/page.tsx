@@ -1,6 +1,18 @@
-import { DashboardAttendanceSection } from "@/components/dashboard/dashboard-attendance-section";
+import dynamic from "next/dynamic";
 import { createClient } from "@/lib/supabase/server";
 import { ckb } from "@/lib/ckb";
+
+const DashboardAttendanceSection = dynamic(
+  () =>
+    import("@/components/dashboard/dashboard-attendance-section").then(
+      (m) => m.DashboardAttendanceSection,
+    ),
+  {
+    loading: () => (
+      <div className="panel h-72 animate-pulse bg-surface-muted p-5" />
+    ),
+  },
+);
 
 function isoDate(d: Date) {
   return d.toISOString().slice(0, 10);
@@ -50,29 +62,28 @@ export default async function DashboardPage({
       (today.getTime() - monthStart.getTime()) / (1000 * 60 * 60 * 24),
     ) + 1;
 
-  const seriesStartIso = isoDate(
-    range === "month" ? monthStart : weekStart,
-  );
+  const monthStartIso = isoDate(monthStart);
 
   const [
     { count: totalEmployees },
     { data: todayRows },
-    { data: seriesRows },
+    { data: monthRows },
     { data: activities },
     { count: pendingLeaveCount },
   ] = await Promise.all([
     supabase
       .from("employees")
-      .select("*", { count: "exact", head: true })
+      .select("id", { count: "exact", head: true })
       .eq("status", "active"),
     supabase
       .from("attendance_records")
       .select("status, overtime_minutes, late_minutes")
       .eq("work_date", todayIso),
+    // Always fetch month range once — covers both week & month chart toggles
     supabase
       .from("attendance_records")
       .select("work_date, status, late_minutes")
-      .gte("work_date", seriesStartIso)
+      .gte("work_date", monthStartIso)
       .lte("work_date", todayIso),
     supabase
       .from("activity_logs")
@@ -81,30 +92,31 @@ export default async function DashboardPage({
       .limit(8),
     supabase
       .from("leave_requests")
-      .select("*", { count: "exact", head: true })
+      .select("id", { count: "exact", head: true })
       .eq("status", "pending"),
   ]);
 
-  // Also load both ranges lightly for toggle without remount flicker — fetch full month always for both charts
-  const { data: monthRows } = await supabase
-    .from("attendance_records")
-    .select("work_date, status, late_minutes")
-    .gte("work_date", isoDate(monthStart))
-    .lte("work_date", todayIso);
-
   const present = (todayRows ?? []).filter((r) =>
-    ["present", "late", "early_leave", "overtime", "incomplete"].includes(r.status),
+    ["present", "late", "early_leave", "overtime", "incomplete"].includes(
+      r.status,
+    ),
   ).length;
   const late = (todayRows ?? []).filter(
     (r) => r.status === "late" || (r.late_minutes || 0) > 0,
   ).length;
-  const onLeave = (todayRows ?? []).filter((r) => r.status === "on_leave").length;
-  const otSum = (todayRows ?? []).reduce((s, r) => s + (r.overtime_minutes || 0), 0);
+  const onLeave = (todayRows ?? []).filter(
+    (r) => r.status === "on_leave",
+  ).length;
+  const otSum = (todayRows ?? []).reduce(
+    (s, r) => s + (r.overtime_minutes || 0),
+    0,
+  );
   const active = totalEmployees ?? 0;
   const absent = Math.max(active - present - onLeave, 0);
 
-  const weekData = buildSeries(weekStart, 7, monthRows ?? seriesRows ?? []);
-  const monthData = buildSeries(monthStart, monthDays, monthRows ?? []);
+  const rows = monthRows ?? [];
+  const weekData = buildSeries(weekStart, 7, rows);
+  const monthData = buildSeries(monthStart, monthDays, rows);
 
   const cards = [
     { label: ckb.totalEmployees, value: active },
@@ -118,7 +130,9 @@ export default async function DashboardPage({
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-ink md:text-3xl">{ckb.dashboard}</h1>
+        <h1 className="text-2xl font-bold text-ink md:text-3xl">
+          {ckb.dashboard}
+        </h1>
         <p className="mt-1 text-sm text-ink-muted">{ckb.tagline}</p>
       </div>
 
@@ -126,7 +140,9 @@ export default async function DashboardPage({
         {cards.map((card) => (
           <div key={card.label} className="panel p-5">
             <p className="text-sm text-ink-muted">{card.label}</p>
-            <p className="mt-2 text-3xl font-bold tabular-nums text-ink">{card.value}</p>
+            <p className="mt-2 text-3xl font-bold tabular-nums text-ink">
+              {card.value}
+            </p>
           </div>
         ))}
       </div>
@@ -151,7 +167,9 @@ export default async function DashboardPage({
                   className="flex flex-wrap items-center justify-between gap-2 border-b border-line pb-3 last:border-0 last:pb-0"
                 >
                   <div>
-                    <p className="text-sm font-medium">{p?.full_name || "سیستەم"}</p>
+                    <p className="text-sm font-medium">
+                      {p?.full_name || "سیستەم"}
+                    </p>
                     <p className="text-xs text-ink-muted" dir="ltr">
                       {a.action}
                     </p>

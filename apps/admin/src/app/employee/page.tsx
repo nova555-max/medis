@@ -3,30 +3,26 @@ import { BigLiveClock } from "@/components/employee-app/big-clock";
 import { EmployeeHomeActions } from "@/components/employee-app/home-actions";
 import { WorkplaceMap } from "@/components/employee-app/workplace-map";
 import { LiveLocationTracker } from "@/components/employee-app/online-location-tracker";
+import { getEmployeeContext } from "@/lib/auth/session-context";
 import { createClient } from "@/lib/supabase/server";
 import { employeeLogoutAction } from "@/lib/actions/employee-app";
 import { Button } from "@/components/ui/button";
 import { ckb } from "@/lib/ckb";
 import { formatMoney } from "@/lib/money";
+import { redirect } from "next/navigation";
 
 export default async function EmployeeHomePage() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const ctx = await getEmployeeContext();
+  if (!ctx) redirect("/employee/login");
 
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("full_name")
-    .eq("id", user!.id)
-    .maybeSingle();
+  const supabase = await createClient();
 
   const { data: emp } = await supabase
     .from("employees")
     .select(
       "id, company_id, employee_type, gps_enabled, gps_lat, gps_lng, gps_radius_meters, employee_code, base_salary, currency, departments(name)",
     )
-    .eq("user_id", user!.id)
+    .eq("user_id", ctx.userId)
     .maybeSingle();
 
   const today = new Date().toISOString().slice(0, 10);
@@ -43,7 +39,9 @@ export default async function EmployeeHomePage() {
     emp?.id
       ? supabase
           .from("attendance_records")
-          .select("check_in_at, check_out_at, status, worked_minutes, late_minutes")
+          .select(
+            "check_in_at, check_out_at, status, worked_minutes, late_minutes",
+          )
           .eq("employee_id", emp.id)
           .eq("work_date", today)
           .maybeSingle()
@@ -51,7 +49,7 @@ export default async function EmployeeHomePage() {
     emp?.id
       ? supabase
           .from("attendance_records")
-          .select("*", { count: "exact", head: true })
+          .select("id", { count: "exact", head: true })
           .eq("employee_id", emp.id)
           .gte("work_date", monthStart)
           .eq("status", "absent")
@@ -66,8 +64,8 @@ export default async function EmployeeHomePage() {
       : Promise.resolve({ data: [] }),
     supabase
       .from("notifications")
-      .select("*", { count: "exact", head: true })
-      .eq("user_id", user!.id)
+      .select("id", { count: "exact", head: true })
+      .eq("user_id", ctx.userId)
       .eq("is_read", false),
     emp?.company_id
       ? supabase
@@ -89,6 +87,7 @@ export default async function EmployeeHomePage() {
       : Promise.resolve({ data: null }),
   ]);
 
+  const profile = { full_name: ctx.profile.full_name };
   const checkedIn = Boolean(record?.check_in_at);
   const checkedOut = Boolean(record?.check_out_at);
   const dept = emp?.departments as { name?: string } | null;

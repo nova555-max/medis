@@ -32,40 +32,22 @@ export async function updateSession(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request });
 
   const { url, anonKey: key } = getPublicSupabaseEnv();
+  const path = request.nextUrl.pathname;
+
+  // Skip auth entirely for static/API — was calling getUser() first (major latency)
+  if (
+    path.startsWith("/api/") ||
+    path.startsWith("/_next/") ||
+    path === "/favicon.ico"
+  ) {
+    return clearLegacySurfaceCookie(supabaseResponse);
+  }
 
   if (!url || !key) {
     return clearLegacySurfaceCookie(supabaseResponse);
   }
 
-  const supabase = createServerClient(url, key, {
-    cookies: {
-      getAll() {
-        return request.cookies.getAll();
-      },
-      setAll(cookiesToSet: { name: string; value: string; options?: Record<string, unknown> }[]) {
-        cookiesToSet.forEach(({ name, value }) =>
-          request.cookies.set(name, value),
-        );
-        supabaseResponse = NextResponse.next({ request });
-        cookiesToSet.forEach(({ name, value, options }) =>
-          supabaseResponse.cookies.set(name, value, options),
-        );
-      },
-    },
-  });
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  const path = request.nextUrl.pathname;
-
-  // Public API / assets — never force login redirect
-  if (path.startsWith("/api/") || path.startsWith("/_next/")) {
-    return clearLegacySurfaceCookie(supabaseResponse);
-  }
-
-  // Legacy email-OTP route — always hard-redirect to register (no client page)
+  // Legacy email-OTP route — hard-redirect before auth round-trip
   if (path === "/verify-register" || path.startsWith("/verify-register/")) {
     const redirectUrl = request.nextUrl.clone();
     redirectUrl.pathname = "/register";
@@ -89,6 +71,62 @@ export async function updateSession(request: NextRequest) {
   const actionRequest = isServerAction(request);
   const ua = request.headers.get("user-agent") || "";
   const mobileOk = isEmployeePortalAllowed(ua);
+
+  // No session cookie → skip Supabase auth round-trip on public pages
+  const hasSessionCookie = request.cookies
+    .getAll()
+    .some(
+      (c) =>
+        c.name.includes("auth-token") ||
+        (c.name.startsWith("sb-") && c.name.includes("auth")),
+    );
+
+  if (!hasSessionCookie) {
+    if (isEmployeeBlocked) {
+      return clearLegacySurfaceCookie(supabaseResponse);
+    }
+    if (isEmployeeRoute) {
+      if (!mobileOk) {
+        const redirectUrl = request.nextUrl.clone();
+        redirectUrl.pathname = "/employee/desktop-blocked";
+        return clearLegacySurfaceCookie(NextResponse.redirect(redirectUrl));
+      }
+      if (isEmployeeLogin || isEmployeeForgot) {
+        return clearLegacySurfaceCookie(supabaseResponse);
+      }
+      const redirectUrl = request.nextUrl.clone();
+      redirectUrl.pathname = "/employee/login";
+      return clearLegacySurfaceCookie(NextResponse.redirect(redirectUrl));
+    }
+    if (isAdminAuth) {
+      return clearLegacySurfaceCookie(supabaseResponse);
+    }
+    const redirectUrl = request.nextUrl.clone();
+    redirectUrl.pathname = "/login";
+    redirectUrl.search = "";
+    return clearLegacySurfaceCookie(NextResponse.redirect(redirectUrl));
+  }
+
+  const supabase = createServerClient(url, key, {
+    cookies: {
+      getAll() {
+        return request.cookies.getAll();
+      },
+      setAll(cookiesToSet: { name: string; value: string; options?: Record<string, unknown> }[]) {
+        cookiesToSet.forEach(({ name, value }) =>
+          request.cookies.set(name, value),
+        );
+        supabaseResponse = NextResponse.next({ request });
+        cookiesToSet.forEach(({ name, value, options }) =>
+          supabaseResponse.cookies.set(name, value, options),
+        );
+      },
+    },
+  });
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
 
   // ===================== EMPLOYEE ROUTES =====================
   if (isEmployeeRoute) {

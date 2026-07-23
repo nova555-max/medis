@@ -1,5 +1,6 @@
 import { CompanySettingsForm } from "@/components/settings/company-settings-form";
 import { ManagerForm } from "@/components/settings/manager-form";
+import { getAdminContext } from "@/lib/auth/session-context";
 import { createClient } from "@/lib/supabase/server";
 import { ckb } from "@/lib/ckb";
 import { asMoneyCurrency } from "@/lib/settings-money";
@@ -25,43 +26,29 @@ type CompanyRow = {
 
 export default async function SettingsPage() {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const ctx = await getAdminContext();
 
   let company: CompanyRow | null = null;
-  let adminEmail = user?.email || "";
+  let adminEmail = ctx?.email || "";
   let managers: { id: string; full_name: string; email: string | null }[] = [];
 
-  if (user) {
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("company_id, email")
-      .eq("id", user.id)
-      .maybeSingle();
-
-    if (profile?.email) adminEmail = profile.email;
-    else if (user.email) adminEmail = user.email;
-
-    if (profile?.company_id) {
-      const [{ data }, { data: mgrs }] = await Promise.all([
-        supabase
-          .from("companies")
-          .select(COMPANY_SELECT)
-          .eq("id", profile.company_id)
-          .maybeSingle(),
-        supabase
-          .from("profiles")
-          .select("id, full_name, email")
-          .eq("company_id", profile.company_id)
-          .eq("role", "manager")
-          .order("full_name"),
-      ]);
-      company = (data as CompanyRow | null) ?? null;
-      managers = mgrs ?? [];
-    }
+  if (ctx?.companyId) {
+    const [{ data }, { data: mgrs }] = await Promise.all([
+      supabase
+        .from("companies")
+        .select(COMPANY_SELECT)
+        .eq("id", ctx.companyId)
+        .maybeSingle(),
+      supabase
+        .from("profiles")
+        .select("id, full_name, email")
+        .eq("company_id", ctx.companyId)
+        .eq("role", "manager")
+        .order("full_name"),
+    ]);
+    company = (data as CompanyRow | null) ?? null;
+    managers = mgrs ?? [];
   }
-
   const moneyCurrency = asMoneyCurrency(company?.default_currency);
 
   return (

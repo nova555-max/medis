@@ -4,6 +4,7 @@ import { EmployeeForm } from "@/components/employees/employee-form";
 import { EmployeeInlineSalary } from "@/components/employees/employee-inline-salary";
 import { WorkHoursPanel } from "@/components/employees/work-hours-panel";
 import { DeleteForm } from "@/components/org/delete-form";
+import { getAdminContext } from "@/lib/auth/session-context";
 import { createClient } from "@/lib/supabase/server";
 import { ckb } from "@/lib/ckb";
 import { formatMoney } from "@/lib/money";
@@ -32,48 +33,13 @@ export default async function EmployeesPage({
     sp.type === "online" || sp.type === "office" ? sp.type : "all";
 
   const supabase = await createClient();
+  const ctx = await getAdminContext();
   const now = new Date();
   const year = now.getFullYear();
   const month = now.getMonth() + 1;
   const today = new Intl.DateTimeFormat("en-CA", {
     timeZone: "Asia/Baghdad",
   }).format(now);
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  let companyHours = {
-    work_start_time: "09:00",
-    work_end_time: "17:00",
-    late_grace_minutes: 15,
-    gps_only_during_work_hours: true,
-  };
-
-  if (user) {
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("company_id")
-      .eq("id", user.id)
-      .maybeSingle();
-    if (profile?.company_id) {
-      const { data: company } = await supabase
-        .from("companies")
-        .select(
-          "work_start_time, work_end_time, late_grace_minutes, gps_only_during_work_hours",
-        )
-        .eq("id", profile.company_id)
-        .maybeSingle();
-      if (company) {
-        companyHours = {
-          work_start_time: String(company.work_start_time || "09:00"),
-          work_end_time: String(company.work_end_time || "17:00"),
-          late_grace_minutes: company.late_grace_minutes ?? 15,
-          gps_only_during_work_hours:
-            company.gps_only_during_work_hours ?? true,
-        };
-      }
-    }
-  }
 
   let query = supabase
     .from("employees")
@@ -98,6 +64,7 @@ export default async function EmployeesPage({
     { data: departments },
     { data: monthSalaries },
     { data: todayAttendance },
+    { data: company },
   ] = await Promise.all([
     query,
     supabase
@@ -114,8 +81,24 @@ export default async function EmployeesPage({
       .from("attendance_records")
       .select("employee_id, check_in_at, check_out_at, status")
       .eq("work_date", today),
+    ctx?.companyId
+      ? supabase
+          .from("companies")
+          .select(
+            "work_start_time, work_end_time, late_grace_minutes, gps_only_during_work_hours",
+          )
+          .eq("id", ctx.companyId)
+          .maybeSingle()
+      : Promise.resolve({ data: null }),
   ]);
 
+  const companyHours = {
+    work_start_time: String(company?.work_start_time || "09:00"),
+    work_end_time: String(company?.work_end_time || "17:00"),
+    late_grace_minutes: company?.late_grace_minutes ?? 15,
+    gps_only_during_work_hours:
+      company?.gps_only_during_work_hours ?? true,
+  };
   const salaryByEmp = new Map(
     (monthSalaries ?? []).map((s) => [s.employee_id, s]),
   );

@@ -32,9 +32,7 @@ const MAX_ATTEMPTS = 5;
 
 type PendingRegistration = {
   companyName: string;
-  fullName: string;
   email: string;
-  phone?: string;
   password: string;
   codeHash: string;
   expiresAt: number;
@@ -101,10 +99,8 @@ export async function registerAction(
 
   const parsed = registerCompanySchema.safeParse({
     companyName: formData.get("companyName"),
-    fullName: formData.get("fullName"),
     email: formData.get("email"),
     password: formData.get("password"),
-    phone: formData.get("phone") || undefined,
   });
 
   if (!parsed.success) {
@@ -139,9 +135,7 @@ export async function registerAction(
   const expiresAt = Date.now() + OTP_TTL_MS;
   const pending: PendingRegistration = {
     companyName: parsed.data.companyName,
-    fullName: parsed.data.fullName,
     email,
-    phone: parsed.data.phone,
     password: parsed.data.password,
     codeHash: hashOtp(code, email),
     expiresAt,
@@ -292,7 +286,7 @@ export async function verifyRegisterOtpAction(
       password: pending.password,
       email_confirm: true,
       user_metadata: {
-        full_name: pending.fullName,
+        full_name: pending.companyName,
         role: "admin",
       },
     });
@@ -312,9 +306,9 @@ export async function verifyRegisterOtpAction(
     userId,
     companyName: pending.companyName,
     slug,
-    fullName: pending.fullName,
+    fullName: pending.companyName,
     email: pending.email,
-    phone: pending.phone,
+    phone: null,
   });
 
   if (!provisioned.companyId) {

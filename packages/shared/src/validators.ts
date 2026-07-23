@@ -2,10 +2,8 @@ import { z } from "zod";
 
 export const registerCompanySchema = z.object({
   companyName: z.string().min(2).max(120),
-  fullName: z.string().min(2).max(120),
   email: z.string().email(),
   password: z.string().min(8).max(72),
-  phone: z.string().max(40).optional(),
 });
 
 export const loginSchema = z.object({

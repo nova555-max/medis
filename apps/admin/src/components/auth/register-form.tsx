@@ -43,16 +43,6 @@ export function RegisterForm() {
       </div>
 
       <div>
-        <Label htmlFor="fullName">{ckb.fullName}</Label>
-        <Input id="fullName" name="fullName" required />
-      </div>
-
-      <div>
-        <Label htmlFor="phone">{ckb.phone}</Label>
-        <Input id="phone" name="phone" dir="ltr" className="text-left" />
-      </div>
-
-      <div>
         <Label htmlFor="email">{ckb.email}</Label>
         <Input
           id="email"

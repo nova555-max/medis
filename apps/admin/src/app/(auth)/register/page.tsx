@@ -6,8 +6,7 @@ import Link from "next/link";
 
 export default async function RegisterPage() {
   const slots = await getAdminRegistrationStatus();
-  // Only lock when we KNOW 2+ admins already exist
-  const locked = slots.used >= slots.maxAllowed;
+  const locked = slots.known && slots.used >= slots.maxAllowed;
 
   if (locked) {
     return (
@@ -29,9 +28,16 @@ export default async function RegisterPage() {
 
   return (
     <AuthShell title={ckb.register} subtitle={ckb.createWorkspace}>
-      <p className="mb-4 text-center text-xs text-ink-muted">
-        شوێنی ماوە: {Math.max(slots.maxAllowed - slots.used, 0)} لە {slots.maxAllowed}
-      </p>
+      {slots.known ? (
+        <p className="mb-4 text-center text-xs text-ink-muted">
+          شوێنی ماوە: {Math.max(slots.maxAllowed - slots.used, 0)} لە{" "}
+          {slots.maxAllowed}
+        </p>
+      ) : (
+        <p className="mb-4 text-center text-xs text-amber-700 dark:text-amber-300">
+          پشکنینی شوێنەکان ئەنجامنەدرا — دەتوانیت هەوڵی تۆمارکردن بدەیت.
+        </p>
+      )}
       <RegisterForm />
     </AuthShell>
   );

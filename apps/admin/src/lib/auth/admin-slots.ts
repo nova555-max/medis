@@ -1,31 +1,34 @@
 import { createClient } from "@/lib/supabase/server";
-import { createServiceClient } from "@/lib/supabase/service";
+import { createServiceClient, hasServiceRoleKey } from "@/lib/supabase/service";
 
 /** Max owner-admin accounts that may self-register via /register */
-export const MAX_ADMIN_ACCOUNTS = 2;
+export const MAX_ADMIN_ACCOUNTS = 20;
 
 export type AdminRegistrationStatus = {
   used: number;
   maxAllowed: number;
   open: boolean;
+  /** False when we could not read the real count (do not show fake remaining slots). */
+  known: boolean;
 };
 
 export async function getAdminRegistrationStatus(): Promise<AdminRegistrationStatus> {
   const maxAllowed = MAX_ADMIN_ACCOUNTS;
 
-  // Prefer service-role count (authoritative, works without RPC)
-  try {
-    const service = createServiceClient();
-    const { count, error } = await service
-      .from("profiles")
-      .select("id", { count: "exact", head: true })
-      .eq("role", "admin");
-    if (!error) {
-      const used = count ?? 0;
-      return { used, maxAllowed, open: used < maxAllowed };
+  if (hasServiceRoleKey()) {
+    try {
+      const service = createServiceClient();
+      const { count, error } = await service
+        .from("profiles")
+        .select("id", { count: "exact", head: true })
+        .eq("role", "admin");
+      if (!error) {
+        const used = count ?? 0;
+        return { used, maxAllowed, open: used < maxAllowed, known: true };
+      }
+    } catch {
+      // fall through
     }
-  } catch {
-    // fall through
   }
 
   try {
@@ -38,13 +41,18 @@ export async function getAdminRegistrationStatus(): Promise<AdminRegistrationSta
         const max = Number(
           (row as { max_allowed?: number }).max_allowed ?? maxAllowed,
         );
-        return { used, maxAllowed: max, open: used < max };
+        return {
+          used,
+          maxAllowed: max,
+          open: used < max,
+          known: true,
+        };
       }
     }
   } catch {
     // fall through
   }
 
-  // Bootstrap fail-open: allow register UI when we cannot count (DB still enforces if RPC exists)
-  return { used: 0, maxAllowed, open: true };
+  // Unknown: keep form open, but UI must not claim "2 of 2 remaining"
+  return { used: 0, maxAllowed, open: true, known: false };
 }

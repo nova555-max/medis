@@ -56,6 +56,7 @@ export async function updateSession(request: NextRequest) {
   const isEmployeeApp =
     path === "/employee" || path.startsWith("/employee/");
   const isEmployeeLogin = path === "/employee/login";
+  const isEmployeeForgot = path === "/employee/forgot-password";
   const isEmployeeBlocked = path === "/employee/desktop-blocked";
   const isAdminAuth =
     path.startsWith("/login") ||
@@ -70,19 +71,63 @@ export async function updateSession(request: NextRequest) {
     request.cookies.get("mo_allow_desktop")?.value === "1";
   const ua = request.headers.get("user-agent") || "";
   const mobileOk = allowDesktopEmployee || isMobileUserAgent(ua);
+  const employeeSurface =
+    request.cookies.get("mo_surface")?.value === "employee";
 
-  if ((isEmployeeApp || isEmployeeLogin) && !isEmployeeBlocked && !mobileOk) {
+  // Mark employee surface so refresh / root never shows admin login
+  const stampEmployeeSurface = (res: NextResponse) => {
+    res.cookies.set("mo_surface", "employee", {
+      path: "/",
+      maxAge: 60 * 60 * 24 * 180,
+      sameSite: "lax",
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+    });
+    return res;
+  };
+
+  const stampAdminSurface = (res: NextResponse) => {
+    res.cookies.set("mo_surface", "admin", {
+      path: "/",
+      maxAge: 60 * 60 * 24 * 180,
+      sameSite: "lax",
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+    });
+    return res;
+  };
+
+  if (
+    (isEmployeeApp || isEmployeeLogin || isEmployeeForgot) &&
+    !isEmployeeBlocked &&
+    !mobileOk
+  ) {
     const redirectUrl = request.nextUrl.clone();
     redirectUrl.pathname = "/employee/desktop-blocked";
-    return NextResponse.redirect(redirectUrl);
+    return stampEmployeeSurface(NextResponse.redirect(redirectUrl));
   }
 
   if (isEmployeeBlocked) {
-    return supabaseResponse;
+    return stampEmployeeSurface(supabaseResponse);
   }
 
-  if (isEmployeeLogin) {
-    if (user && !actionRequest) {
+  // Employee surface users opening / or admin auth → employee login (never admin UI)
+  if (
+    employeeSurface &&
+    !user &&
+    (path === "/" ||
+      path === "/login" ||
+      path.startsWith("/register") ||
+      (isAdminAuth && !path.startsWith("/auth/")))
+  ) {
+    const redirectUrl = request.nextUrl.clone();
+    redirectUrl.pathname = "/employee/login";
+    redirectUrl.search = "";
+    return stampEmployeeSurface(NextResponse.redirect(redirectUrl));
+  }
+
+  if (isEmployeeLogin || isEmployeeForgot) {
+    if (user && !actionRequest && isEmployeeLogin) {
       const { data: profile } = await supabase
         .from("profiles")
         .select("role, is_active")
@@ -91,22 +136,22 @@ export async function updateSession(request: NextRequest) {
       if (profile?.role === "employee" && profile.is_active) {
         const redirectUrl = request.nextUrl.clone();
         redirectUrl.pathname = "/employee";
-        return NextResponse.redirect(redirectUrl);
+        return stampEmployeeSurface(NextResponse.redirect(redirectUrl));
       }
       if (isStaff(profile?.role) && profile?.is_active) {
         const redirectUrl = request.nextUrl.clone();
         redirectUrl.pathname = "/";
-        return NextResponse.redirect(redirectUrl);
+        return stampAdminSurface(NextResponse.redirect(redirectUrl));
       }
     }
-    return supabaseResponse;
+    return stampEmployeeSurface(supabaseResponse);
   }
 
   if (isEmployeeApp) {
     if (!user) {
       const redirectUrl = request.nextUrl.clone();
       redirectUrl.pathname = "/employee/login";
-      return NextResponse.redirect(redirectUrl);
+      return stampEmployeeSurface(NextResponse.redirect(redirectUrl));
     }
     const { data: profile } = await supabase
       .from("profiles")
@@ -116,15 +161,15 @@ export async function updateSession(request: NextRequest) {
     if (isStaff(profile?.role) && profile?.is_active) {
       const redirectUrl = request.nextUrl.clone();
       redirectUrl.pathname = "/";
-      return NextResponse.redirect(redirectUrl);
+      return stampAdminSurface(NextResponse.redirect(redirectUrl));
     }
     if (!profile || profile.role !== "employee" || !profile.is_active) {
       const redirectUrl = request.nextUrl.clone();
       redirectUrl.pathname = "/employee/login";
       redirectUrl.searchParams.set("error", "employee_only");
-      return NextResponse.redirect(redirectUrl);
+      return stampEmployeeSurface(NextResponse.redirect(redirectUrl));
     }
-    return supabaseResponse;
+    return stampEmployeeSurface(supabaseResponse);
   }
 
   if (isAdminAuth) {
@@ -143,21 +188,23 @@ export async function updateSession(request: NextRequest) {
       if (profile?.role === "employee" && profile.is_active) {
         const redirectUrl = request.nextUrl.clone();
         redirectUrl.pathname = "/employee";
-        return NextResponse.redirect(redirectUrl);
+        return stampEmployeeSurface(NextResponse.redirect(redirectUrl));
       }
       if (isStaff(profile?.role) && profile?.is_active) {
         const redirectUrl = request.nextUrl.clone();
         redirectUrl.pathname = "/";
-        return NextResponse.redirect(redirectUrl);
+        return stampAdminSurface(NextResponse.redirect(redirectUrl));
       }
     }
-    return supabaseResponse;
+    return stampAdminSurface(supabaseResponse);
   }
 
   if (!user) {
     const redirectUrl = request.nextUrl.clone();
-    redirectUrl.pathname = "/login";
-    return NextResponse.redirect(redirectUrl);
+    redirectUrl.pathname = employeeSurface ? "/employee/login" : "/login";
+    return employeeSurface
+      ? stampEmployeeSurface(NextResponse.redirect(redirectUrl))
+      : stampAdminSurface(NextResponse.redirect(redirectUrl));
   }
 
   const { data: profile } = await supabase
@@ -169,7 +216,7 @@ export async function updateSession(request: NextRequest) {
   if (profile?.role === "employee" && profile.is_active) {
     const redirectUrl = request.nextUrl.clone();
     redirectUrl.pathname = "/employee";
-    return NextResponse.redirect(redirectUrl);
+    return stampEmployeeSurface(NextResponse.redirect(redirectUrl));
   }
 
   if (!profile || !isStaff(profile.role) || !profile.is_active) {
@@ -177,7 +224,7 @@ export async function updateSession(request: NextRequest) {
     const redirectUrl = request.nextUrl.clone();
     redirectUrl.pathname = "/login";
     redirectUrl.searchParams.set("error", "admin_only");
-    return NextResponse.redirect(redirectUrl);
+    return stampAdminSurface(NextResponse.redirect(redirectUrl));
   }
 
   if (profile.role === "manager") {
@@ -188,9 +235,9 @@ export async function updateSession(request: NextRequest) {
     if (blocked) {
       const redirectUrl = request.nextUrl.clone();
       redirectUrl.pathname = "/";
-      return NextResponse.redirect(redirectUrl);
+      return stampAdminSurface(NextResponse.redirect(redirectUrl));
     }
   }
 
-  return supabaseResponse;
+  return stampAdminSurface(supabaseResponse);
 }

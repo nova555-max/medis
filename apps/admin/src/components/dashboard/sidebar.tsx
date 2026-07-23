@@ -18,6 +18,7 @@ import {
   MapPinned,
   Clock3,
   CalendarDays,
+  KeyRound,
 } from "lucide-react";
 import { ckb } from "@/lib/ckb";
 import { cn } from "@/lib/cn";
@@ -32,6 +33,7 @@ type NavItem = {
 const nav: NavItem[] = [
   { href: "/", label: ckb.dashboard, icon: LayoutDashboard },
   { href: "/employees", label: ckb.employees, icon: Users },
+  { href: "/password-requests", label: "داواکاری وشەی نهێنی", icon: KeyRound },
   { href: "/online-employees", label: "شوێنی ڕاستەوخۆ", icon: MapPinned },
   { href: "/shifts", label: ckb.shifts, icon: Clock3 },
   { href: "/holidays", label: ckb.holidays, icon: CalendarDays },

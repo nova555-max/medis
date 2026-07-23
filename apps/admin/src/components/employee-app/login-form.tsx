@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useActionState, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
@@ -62,7 +63,15 @@ export function EmployeeLoginForm() {
         />
       </div>
       <div>
-        <Label htmlFor="password">{ckb.password}</Label>
+        <div className="mb-1.5 flex items-center justify-between">
+          <Label htmlFor="password">{ckb.password}</Label>
+          <Link
+            href="/employee/forgot-password"
+            className="text-xs font-medium text-brand-600 hover:underline"
+          >
+            {ckb.forgotPassword}
+          </Link>
+        </div>
         <Input
           id="password"
           name="password"

@@ -45,12 +45,6 @@ export function LoginForm({ registrationOpen = false }: { registrationOpen?: boo
       <div>
         <div className="mb-1.5 flex items-center justify-between">
           <Label htmlFor="password">{ckb.password}</Label>
-          <Link
-            href="/forgot-password"
-            className="text-xs font-medium text-brand-600 hover:underline"
-          >
-            وشەی نهێنیت لەبیرچووە؟
-          </Link>
         </div>
         <Input
           id="password"
@@ -66,6 +60,15 @@ export function LoginForm({ registrationOpen = false }: { registrationOpen?: boo
       <Button type="submit" className="w-full" disabled={pending}>
         {pending ? ckb.loading : ckb.login}
       </Button>
+
+      <p className="text-center text-sm">
+        <Link
+          href="/forgot-password"
+          className="font-medium text-brand-600 hover:underline"
+        >
+          {ckb.forgotPassword}
+        </Link>
+      </p>
 
       {registrationOpen ? (
         <p className="text-center text-sm text-ink-muted">

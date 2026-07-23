@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { ckb } from "@/lib/ckb";
 
@@ -54,9 +53,7 @@ export function AuthShell({
         </div>
 
         <p className="mt-6 text-center text-xs text-ink-muted">
-          <Link href="/" className="hover:text-ink">
-            © {new Date().getFullYear()} {ckb.appName}
-          </Link>
+          © {new Date().getFullYear()} {ckb.appName}
         </p>
       </div>
     </div>

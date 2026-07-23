@@ -60,6 +60,11 @@ export async function updateSession(request: NextRequest) {
 
   const path = request.nextUrl.pathname;
 
+  // Public API / assets — never force login redirect
+  if (path.startsWith("/api/") || path.startsWith("/_next/")) {
+    return clearLegacySurfaceCookie(supabaseResponse);
+  }
+
   // Legacy email-OTP route — always hard-redirect to register (no client page)
   if (path === "/verify-register" || path.startsWith("/verify-register/")) {
     const redirectUrl = request.nextUrl.clone();

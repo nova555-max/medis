@@ -1,0 +1,15 @@
+project_id = "media-office"
+
+[api]
+enabled = true
+port = 54321
+
+[db]
+port = 54322
+major_version = 15
+
+[auth]
+enabled = true
+site_url = "http://localhost:3000"
+additional_redirect_urls = ["http://localhost:3000/**", "mediaoffice://**"]
+enable_signup = true

@@ -1,0 +1,46 @@
+{
+  "expo": {
+    "name": "میدیا ئۆفیس",
+    "slug": "media-office",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "scheme": "mediaoffice",
+    "userInterfaceStyle": "automatic",
+    "newArchEnabled": true,
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.mediaoffice.employee",
+      "infoPlist": {
+        "NSCameraUsageDescription": "بۆ سکانکردنی QR و وێنەی سێڵفی ئامادەبوون",
+        "NSLocationWhenInUseUsageDescription": "بۆ پشتڕاستکردنەوەی شوێنی چک-ئین و چک-ئاوت"
+      }
+    },
+    "android": {
+      "package": "com.mediaoffice.employee",
+      "permissions": [
+        "ACCESS_COARSE_LOCATION",
+        "ACCESS_FINE_LOCATION",
+        "CAMERA"
+      ]
+    },
+    "plugins": [
+      "expo-router",
+      "expo-secure-store",
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "بۆ پشتڕاستکردنەوەی شوێنی ئامادەبوون پێویستە."
+        }
+      ],
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "بۆ QR و سێڵفی ئامادەبوون پێویستە."
+        }
+      ]
+    ],
+    "experiments": {
+      "typedRoutes": true
+    }
+  }
+}

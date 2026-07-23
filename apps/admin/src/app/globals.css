@@ -1,0 +1,285 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --surface: 244 247 251;
+  --surface-muted: 232 238 246;
+  --surface-elevated: 255 255 255;
+  --ink: 19 34 56;
+  --ink-muted: 90 108 132;
+  --line: 214 223 235;
+  --brand: 42 90 143;
+}
+
+.dark {
+  --surface: 10 16 26;
+  --surface-muted: 18 28 42;
+  --surface-elevated: 22 34 50;
+  --ink: 232 239 248;
+  --ink-muted: 148 166 190;
+  --line: 40 56 78;
+  --brand: 88 145 197;
+}
+
+html {
+  direction: rtl;
+}
+
+body {
+  @apply bg-surface text-ink antialiased;
+  font-family: var(--font-kurdistan24), Tahoma, sans-serif;
+  background-image:
+    radial-gradient(ellipse 75% 50% at 100% -15%, rgb(42 90 143 / 0.12), transparent),
+    radial-gradient(ellipse 55% 40% at 0% 100%, rgb(86 143 197 / 0.08), transparent);
+  min-height: 100vh;
+}
+
+.dark body {
+  background-image:
+    radial-gradient(ellipse 75% 50% at 100% -15%, rgb(88 145 197 / 0.12), transparent),
+    radial-gradient(ellipse 55% 40% at 0% 100%, rgb(19 34 56 / 0.55), transparent);
+}
+
+@layer utilities {
+  .panel {
+    @apply rounded-2xl border border-line bg-surface-elevated shadow-soft;
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes gpsPulse {
+  0% {
+    opacity: 0.7;
+    stroke-opacity: 0.7;
+  }
+  100% {
+    opacity: 0;
+    stroke-opacity: 0;
+  }
+}
+
+@keyframes gpsMeGlow {
+  0%,
+  100% {
+    opacity: 0.3;
+  }
+  50% {
+    opacity: 0.8;
+  }
+}
+
+@keyframes fingerprintScan {
+  0% {
+    top: -10%;
+    opacity: 0;
+  }
+  15% {
+    opacity: 1;
+  }
+  85% {
+    opacity: 1;
+  }
+  100% {
+    top: 95%;
+    opacity: 0;
+  }
+}
+
+@keyframes fingerprintRing {
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 0.55;
+  }
+  50% {
+    transform: scale(1.06);
+    opacity: 1;
+  }
+}
+
+.gps-pulse-ring {
+  animation: gpsPulse 1.8s ease-out forwards;
+}
+
+.gps-me-glow {
+  animation: gpsMeGlow 2.2s ease-in-out infinite;
+}
+
+.gps-workplace-marker {
+  background: transparent !important;
+  border: none !important;
+}
+
+.leaflet-container {
+  background: #e8eef6;
+  font-family: inherit;
+}
+
+/* Professional print / A4 report layout */
+@page {
+  size: A4;
+  margin: 12mm;
+}
+
+@media print {
+  html,
+  body {
+    background: #fff !important;
+    background-image: none !important;
+    color: #132238 !important;
+  }
+
+  .print\:hidden,
+  aside,
+  nav,
+  [data-sidebar],
+  .no-print {
+    display: none !important;
+  }
+
+  .report-sheet {
+    box-shadow: none !important;
+    border: none !important;
+    break-inside: avoid;
+  }
+
+  .report-header {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  .report-table th {
+    background: #2a5a8f !important;
+    color: #fff !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  .report-footer::after {
+    content: "لاپەڕە " counter(page);
+  }
+}
+
+.report-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+}
+
+.report-table th,
+.report-table td {
+  border: 1px solid rgb(var(--line));
+  padding: 0.6rem 0.75rem;
+  text-align: right;
+}
+
+.report-table th {
+  background: rgb(var(--brand) / 0.12);
+  font-weight: 700;
+}
+
+.report-table tr:nth-child(even) td {
+  background: rgb(var(--surface-muted) / 0.45);
+}
+
+/* A4 salary receipt: two stacked halves (employee + manager) */
+.salary-receipt-a4 {
+  width: 210mm;
+  max-width: 100%;
+  min-height: 297mm;
+  display: flex;
+  flex-direction: column;
+  border: 1px solid rgb(var(--line));
+  overflow: hidden;
+}
+
+.salary-receipt-a4-half {
+  flex: 1 1 50%;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.salary-receipt-a4-half > section {
+  flex: 1;
+  border-radius: 0;
+  border-left: none;
+  border-right: none;
+}
+
+.salary-receipt-a4-half:first-child > section {
+  border-top: none;
+}
+
+.salary-receipt-a4-half:last-child > section {
+  border-bottom: none;
+}
+
+.salary-receipt-cut {
+  position: relative;
+  flex: 0 0 auto;
+  border-top: 1.5px dashed rgb(var(--line));
+  margin: 0 12px;
+}
+
+.salary-receipt-cut-label {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  background: #fff;
+  color: rgb(var(--ink-muted));
+  font-size: 10px;
+  padding: 0 8px;
+  white-space: nowrap;
+}
+
+@media print {
+  .salary-receipt-a4 {
+    width: 210mm;
+    height: 297mm;
+    min-height: 297mm;
+    max-width: none;
+    border: none;
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+
+  .salary-receipt-a4-half {
+    height: calc((297mm - 8mm) / 2);
+    max-height: calc((297mm - 8mm) / 2);
+  }
+
+  .salary-receipt-cut-label {
+    background: #fff;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  .salary-receipt-print-page {
+    page-break-after: always;
+    break-after: page;
+  }
+
+  .salary-receipt-print-page:last-child {
+    page-break-after: auto;
+    break-after: auto;
+  }
+
+  .salary-receipt-batch {
+    space: 0;
+  }
+}
+
+

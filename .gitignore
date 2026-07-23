@@ -1,0 +1,23 @@
+node_modules
+.next
+.expo
+dist
+build
+.turbo
+.DS_Store
+*.log
+.env
+.env.local
+.env*.local
+apps/mobile/.expo
+apps/admin/.next
+coverage
+*.tsbuildinfo
+.vercel
+eas-update-local
+
+# local apply helpers
+supabase/_*.json
+supabase/_part*.sql
+supabase/chunk*.sql
+.tmp_mig*.json

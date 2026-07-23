@@ -1,7 +1,9 @@
 "use server";
 
+import { headers } from "next/headers";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { isEmployeePortalAllowed } from "@/lib/auth/mobile";
 import { createClient } from "@/lib/supabase/server";
 import { employeeIdToEmail } from "@/lib/employee-auth-id";
 
@@ -11,6 +13,11 @@ export async function employeeLoginAction(
   _prev: EmployeeAuthState,
   formData: FormData,
 ): Promise<EmployeeAuthState> {
+  const ua = (await headers()).get("user-agent") || "";
+  if (!isEmployeePortalAllowed(ua)) {
+    return { error: "چوونەژوورەوەی کارمەند تەنها لە مۆبایل ڕێگەپێدراوە." };
+  }
+
   const rawId = String(
     formData.get("employeeId") || formData.get("email") || "",
   ).trim();

@@ -6,7 +6,7 @@
 [build.environment]
   NODE_VERSION = "20"
   NPM_FLAGS = "--legacy-peer-deps"
-  MEDIA_OFFICE_BUILD_ID = "kill-verify-register-v2"
+  MEDIA_OFFICE_BUILD_ID = "employee-mobile-only-v1"
 
 [[plugins]]
   package = "@netlify/plugin-nextjs"

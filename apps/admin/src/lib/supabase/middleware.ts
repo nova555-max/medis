@@ -1,5 +1,6 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
+import { isEmployeePortalAllowed } from "@/lib/auth/mobile";
 
 function isServerAction(request: NextRequest) {
   return (
@@ -8,12 +9,6 @@ function isServerAction(request: NextRequest) {
       request.headers.has("Next-Action") ||
       Boolean(request.headers.get("content-type")?.includes("multipart/form-data")) ||
       Boolean(request.headers.get("content-type")?.includes("text/plain")))
-  );
-}
-
-function isMobileUserAgent(ua: string) {
-  return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini|Mobile|CriOS|FxiOS/i.test(
-    ua,
   );
 }
 
@@ -78,7 +73,6 @@ export async function updateSession(request: NextRequest) {
   const isEmployeeLogin = path === "/employee/login";
   const isEmployeeForgot = path === "/employee/forgot-password";
   const isEmployeeBlocked = path === "/employee/desktop-blocked";
-  const isEmployeeAuthPage = isEmployeeLogin || isEmployeeForgot || isEmployeeBlocked;
   const isAdminLogin = path === "/login" || path.startsWith("/login/");
   const isAdminAuth =
     isAdminLogin ||
@@ -88,20 +82,24 @@ export async function updateSession(request: NextRequest) {
     path.startsWith("/reset-password") ||
     path.startsWith("/auth/");
   const actionRequest = isServerAction(request);
-  const allowDesktopEmployee =
-    process.env.ALLOW_EMPLOYEE_DESKTOP === "1" ||
-    request.cookies.get("mo_allow_desktop")?.value === "1";
   const ua = request.headers.get("user-agent") || "";
-  const mobileOk = allowDesktopEmployee || isMobileUserAgent(ua);
+  const mobileOk = isEmployeePortalAllowed(ua);
 
   // ===================== EMPLOYEE ROUTES =====================
   if (isEmployeeRoute) {
-    // Always allow login / forgot / blocked pages on any device
-    if (isEmployeeAuthPage) {
-      if (isEmployeeBlocked) {
-        return clearLegacySurfaceCookie(supabaseResponse);
-      }
+    // Blocked explanation page is always reachable (desktop users land here)
+    if (isEmployeeBlocked) {
+      return clearLegacySurfaceCookie(supabaseResponse);
+    }
 
+    // Entire employee portal (login included): mobile only
+    if (!mobileOk) {
+      const redirectUrl = request.nextUrl.clone();
+      redirectUrl.pathname = "/employee/desktop-blocked";
+      return clearLegacySurfaceCookie(NextResponse.redirect(redirectUrl));
+    }
+
+    if (isEmployeeLogin || isEmployeeForgot) {
       if (user && !actionRequest && isEmployeeLogin) {
         const { data: profile } = await supabase
           .from("profiles")
@@ -109,13 +107,7 @@ export async function updateSession(request: NextRequest) {
           .eq("id", user.id)
           .maybeSingle();
 
-        // Same role → enter app (mobile only for app itself handled below)
         if (profile?.role === "employee" && profile.is_active) {
-          if (!mobileOk) {
-            const redirectUrl = request.nextUrl.clone();
-            redirectUrl.pathname = "/employee/desktop-blocked";
-            return clearLegacySurfaceCookie(NextResponse.redirect(redirectUrl));
-          }
           const redirectUrl = request.nextUrl.clone();
           redirectUrl.pathname = "/employee";
           return clearLegacySurfaceCookie(NextResponse.redirect(redirectUrl));
@@ -129,13 +121,6 @@ export async function updateSession(request: NextRequest) {
       }
 
       return clearLegacySurfaceCookie(supabaseResponse);
-    }
-
-    // Employee app pages: mobile only
-    if (!mobileOk) {
-      const redirectUrl = request.nextUrl.clone();
-      redirectUrl.pathname = "/employee/desktop-blocked";
-      return clearLegacySurfaceCookie(NextResponse.redirect(redirectUrl));
     }
 
     if (!user) {

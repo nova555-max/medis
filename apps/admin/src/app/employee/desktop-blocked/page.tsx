@@ -13,16 +13,10 @@ export default function EmployeeDesktopBlockedPage() {
         <p className="text-sm text-ink-muted">{ckb.employeeOnlyMobile}</p>
         <div className="flex flex-col gap-2 pt-2">
           <Link
-            href="/employee/login"
-            className="rounded-xl bg-brand-600 px-4 py-2.5 text-sm font-medium text-white"
-          >
-            گەڕانەوە بۆ چوونەژوورەوەی کارمەند
-          </Link>
-          <Link
             href="/login"
             className="rounded-xl border border-line px-4 py-2.5 text-sm font-medium text-ink"
           >
-            چوونەژوورەوەی ئەدمین
+            چوونەژوورەوەی ئەدمین (کۆمپیوتەر)
           </Link>
         </div>
       </div>

@@ -64,6 +64,15 @@ export async function updateSession(request: NextRequest) {
   } = await supabase.auth.getUser();
 
   const path = request.nextUrl.pathname;
+
+  // Legacy email-OTP route — always hard-redirect to register (no client page)
+  if (path === "/verify-register" || path.startsWith("/verify-register/")) {
+    const redirectUrl = request.nextUrl.clone();
+    redirectUrl.pathname = "/register";
+    redirectUrl.search = "";
+    return clearLegacySurfaceCookie(NextResponse.redirect(redirectUrl));
+  }
+
   const isEmployeeRoute =
     path === "/employee" || path.startsWith("/employee/");
   const isEmployeeLogin = path === "/employee/login";
@@ -74,7 +83,6 @@ export async function updateSession(request: NextRequest) {
   const isAdminAuth =
     isAdminLogin ||
     path.startsWith("/register") ||
-    path.startsWith("/verify-register") ||
     path.startsWith("/forgot-password") ||
     path.startsWith("/verify-otp") ||
     path.startsWith("/reset-password") ||
@@ -163,7 +171,6 @@ export async function updateSession(request: NextRequest) {
     const isPasswordFlow =
       path.startsWith("/forgot-password") ||
       path.startsWith("/verify-otp") ||
-      path.startsWith("/verify-register") ||
       path.startsWith("/reset-password") ||
       path.startsWith("/auth/");
 

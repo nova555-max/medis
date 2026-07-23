@@ -5,9 +5,14 @@ function otpEmailHtml(params: {
   companyName: string;
   expiresMinutes: number;
   logoUrl?: string | null;
+  purpose: "password" | "register";
 }) {
-  const { code, companyName, expiresMinutes, logoUrl } = params;
+  const { code, companyName, expiresMinutes, logoUrl, purpose } = params;
   const digits = code.split("").join(" ");
+  const intro =
+    purpose === "register"
+      ? "بۆ پشتڕاستکردنەوەی ئیمەیڵ و دروستکردنی هەژماری کۆمپانیا، ئەم کۆدە ٦ ژمارەییە بنووسە."
+      : "بۆ گۆڕینی وشەی نهێنی هەژماری بەڕێوەبەر، ئەم کۆدە ٦ ژمارەییە بەکاربهێنە.";
   const logoBlock = logoUrl
     ? `<img src="${logoUrl}" alt="${companyName}" width="48" height="48" style="display:inline-block;width:48px;height:48px;border-radius:12px;object-fit:contain;background:#fff;" />`
     : `<div style="display:inline-block;width:48px;height:48px;line-height:48px;border-radius:12px;background:rgba(255,255,255,0.15);color:#fff;font-size:22px;font-weight:700;">م</div>`;
@@ -34,7 +39,7 @@ function otpEmailHtml(params: {
             <td style="padding:28px 24px;color:#132238;">
               <h2 style="margin:0 0 12px;font-size:18px;">کۆدی پشتڕاستکردنەوە</h2>
               <p style="margin:0 0 20px;font-size:14px;line-height:1.7;color:#5a6c84;">
-                بۆ گۆڕینی وشەی نهێنی هەژماری بەڕێوەبەر، ئەم کۆدە ٦ ژمارەییە بەکاربهێنە.
+                ${intro}
               </p>
               <div style="text-align:center;margin:8px 0 22px;">
                 <div style="display:inline-block;letter-spacing:10px;font-size:36px;font-weight:800;color:#2a5a8f;background:#f0f5fb;border:1px solid #d6dfeb;border-radius:14px;padding:16px 22px;font-family:Consolas,Monaco,monospace;direction:ltr;">
@@ -62,11 +67,12 @@ function otpEmailHtml(params: {
 </html>`;
 }
 
-export async function sendPasswordOtpEmail(params: {
+async function sendOtpEmail(params: {
   to: string;
   code: string;
   companyName?: string;
   logoUrl?: string | null;
+  purpose: "password" | "register";
 }) {
   const apiKey = process.env.RESEND_API_KEY;
   if (!apiKey) {
@@ -81,12 +87,16 @@ export async function sendPasswordOtpEmail(params: {
   const { error } = await resend.emails.send({
     from,
     to: params.to,
-    subject: `کۆدی پشتڕاستکردنەوە — ${companyName}`,
+    subject:
+      params.purpose === "register"
+        ? `کۆدی تۆمارکردن — ${companyName}`
+        : `کۆدی پشتڕاستکردنەوە — ${companyName}`,
     html: otpEmailHtml({
       code: params.code,
       companyName,
       expiresMinutes: 10,
       logoUrl: params.logoUrl,
+      purpose: params.purpose,
     }),
   });
 
@@ -95,3 +105,19 @@ export async function sendPasswordOtpEmail(params: {
   }
 }
 
+export async function sendPasswordOtpEmail(params: {
+  to: string;
+  code: string;
+  companyName?: string;
+  logoUrl?: string | null;
+}) {
+  return sendOtpEmail({ ...params, purpose: "password" });
+}
+
+export async function sendRegistrationOtpEmail(params: {
+  to: string;
+  code: string;
+  companyName?: string;
+}) {
+  return sendOtpEmail({ ...params, purpose: "register" });
+}

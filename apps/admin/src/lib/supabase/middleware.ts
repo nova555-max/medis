@@ -61,6 +61,7 @@ export async function updateSession(request: NextRequest) {
   const isAdminAuth =
     path.startsWith("/login") ||
     path.startsWith("/register") ||
+    path.startsWith("/verify-register") ||
     path.startsWith("/forgot-password") ||
     path.startsWith("/verify-otp") ||
     path.startsWith("/reset-password") ||
@@ -173,6 +174,7 @@ export async function updateSession(request: NextRequest) {
     const isPasswordFlow =
       path.startsWith("/forgot-password") ||
       path.startsWith("/verify-otp") ||
+      path.startsWith("/verify-register") ||
       path.startsWith("/reset-password") ||
       path.startsWith("/auth/");
 

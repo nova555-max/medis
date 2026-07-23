@@ -11,6 +11,23 @@ export type AdminRegistrationStatus = {
 };
 
 export async function getAdminRegistrationStatus(): Promise<AdminRegistrationStatus> {
+  const maxAllowed = MAX_ADMIN_ACCOUNTS;
+
+  // Prefer service-role count (authoritative, works without RPC)
+  try {
+    const service = createServiceClient();
+    const { count, error } = await service
+      .from("profiles")
+      .select("id", { count: "exact", head: true })
+      .eq("role", "admin");
+    if (!error) {
+      const used = count ?? 0;
+      return { used, maxAllowed, open: used < maxAllowed };
+    }
+  } catch {
+    // fall through
+  }
+
   try {
     const supabase = await createClient();
     const { data, error } = await supabase.rpc("admin_registration_slots");
@@ -18,33 +35,16 @@ export async function getAdminRegistrationStatus(): Promise<AdminRegistrationSta
       const row = Array.isArray(data) ? data[0] : data;
       if (row && typeof row === "object") {
         const used = Number((row as { used?: number }).used ?? 0);
-        const maxAllowed = Number(
-          (row as { max_allowed?: number }).max_allowed ?? MAX_ADMIN_ACCOUNTS,
+        const max = Number(
+          (row as { max_allowed?: number }).max_allowed ?? maxAllowed,
         );
-        const open = Boolean((row as { open?: boolean }).open);
-        return { used, maxAllowed, open };
+        return { used, maxAllowed: max, open: used < max };
       }
     }
   } catch {
-    // fall through to service count
+    // fall through
   }
 
-  try {
-    const service = createServiceClient();
-    const { count, error } = await service
-      .from("profiles")
-      .select("id", { count: "exact", head: true })
-      .eq("role", "admin");
-    if (error) {
-      return { used: 0, maxAllowed: MAX_ADMIN_ACCOUNTS, open: false };
-    }
-    const used = count ?? 0;
-    return {
-      used,
-      maxAllowed: MAX_ADMIN_ACCOUNTS,
-      open: used < MAX_ADMIN_ACCOUNTS,
-    };
-  } catch {
-    return { used: 0, maxAllowed: MAX_ADMIN_ACCOUNTS, open: false };
-  }
+  // Bootstrap fail-open: allow register UI when we cannot count (DB still enforces if RPC exists)
+  return { used: 0, maxAllowed, open: true };
 }

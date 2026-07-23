@@ -111,14 +111,11 @@ export async function updateSession(request: NextRequest) {
     return stampEmployeeSurface(supabaseResponse);
   }
 
-  // Employee surface users opening / or admin auth → employee login (never admin UI)
+  // Employee surface: keep employees off admin login/home — but NEVER block /register
   if (
     employeeSurface &&
     !user &&
-    (path === "/" ||
-      path === "/login" ||
-      path.startsWith("/register") ||
-      (isAdminAuth && !path.startsWith("/auth/")))
+    (path === "/" || path === "/login")
   ) {
     const redirectUrl = request.nextUrl.clone();
     redirectUrl.pathname = "/employee/login";

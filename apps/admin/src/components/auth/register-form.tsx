@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState, useEffect } from "react";
+import { useActionState } from "react";
 import { registerAction, type RegisterOtpState } from "@/lib/actions/register-otp";
 import { Button } from "@/components/ui/button";
 import { Input, Label } from "@/components/ui/input";
@@ -12,23 +12,13 @@ const initial: RegisterOtpState = {};
 export function RegisterForm() {
   const [state, formAction, pending] = useActionState(registerAction, initial);
 
-  useEffect(() => {
-    if (state.success === "otp_sent" && state.email && !state.inlineCode) {
-      const q = new URLSearchParams({
-        email: state.email,
-        ...(state.expiresAt ? { expires: state.expiresAt } : {}),
-      });
-      window.location.assign(`/verify-register?${q.toString()}`);
-    }
-  }, [state.success, state.email, state.expiresAt, state.inlineCode]);
-
   return (
     <form action={formAction} className="space-y-4">
       <p className="rounded-xl border border-brand-200 bg-brand-50 px-3 py-2 text-sm text-brand-800 dark:border-brand-800 dark:bg-brand-950/40 dark:text-brand-200">
         {ckb.registerHint}
       </p>
       <p className="rounded-xl border border-line bg-surface-muted px-3 py-2 text-sm text-ink-muted">
-        دوای پڕکردنەوە، کۆدی ٦ ژمارەیی بۆ ئیمەیڵەکەت دەنێردرێت بۆ پشتڕاستکردنەوە.
+        دوای پڕکردنەوە، کۆدی ٦ ژمارەیی لەسەر شاشە دەردەکەوێت (پێویست بە دۆمەین ناکات).
       </p>
 
       {state.error && (
@@ -37,10 +27,10 @@ export function RegisterForm() {
         </div>
       )}
 
-      {state.warning && state.inlineCode && (
-        <div className="space-y-3 rounded-xl border border-amber-300 bg-amber-50 px-3 py-3 text-sm text-amber-950 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-100">
-          <p>{state.warning}</p>
-          <p className="text-center text-xs text-ink-muted">کۆدی پشتڕاستکردنەوە</p>
+      {state.success === "otp_sent" && state.inlineCode && (
+        <div className="space-y-3 rounded-xl border border-emerald-300 bg-emerald-50 px-3 py-3 text-sm text-emerald-950 dark:border-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-100">
+          {state.warning ? <p>{state.warning}</p> : null}
+          <p className="text-center text-xs opacity-80">کۆدی پشتڕاستکردنەوە</p>
           <p
             className="rounded-xl bg-white px-3 py-3 text-center text-3xl font-bold tracking-[0.35em] text-brand-700 dark:bg-surface-elevated"
             dir="ltr"
@@ -55,7 +45,7 @@ export function RegisterForm() {
             }`}
             className="inline-flex w-full justify-center rounded-xl bg-brand-600 px-4 py-2.5 text-sm font-medium text-white"
           >
-            بەردەوامبوون بۆ نووسینی کۆد
+            بەردەوامبوون — کۆدەکە لێرە بنووسە
           </Link>
         </div>
       )}
@@ -91,7 +81,7 @@ export function RegisterForm() {
       </div>
 
       <Button type="submit" className="w-full" disabled={pending}>
-        {pending ? ckb.loading : "ناردنی کۆدی پشتڕاستکردنەوە"}
+        {pending ? ckb.loading : "دروستکردنی کۆدی پشتڕاستکردنەوە"}
       </Button>
 
       <p className="text-center text-sm text-ink-muted">

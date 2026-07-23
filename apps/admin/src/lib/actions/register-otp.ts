@@ -24,10 +24,20 @@ export type RegisterOtpState = {
   success?: string;
   email?: string;
   expiresAt?: string;
-  /** Shown only when Resend cannot deliver (e.g. unverified domain / test mode) */
+  /** 6-digit code shown on screen (no domain / Resend test mode) */
   inlineCode?: string;
   warning?: string;
 };
+
+function registrationUsesInlineOtpOnly() {
+  // Without a verified custom domain, Resend can only email the account owner.
+  const from = process.env.RESEND_FROM_EMAIL || "onboarding@resend.dev";
+  return (
+    process.env.REGISTER_OTP_INLINE === "1" ||
+    from.includes("resend.dev") ||
+    process.env.RESEND_FORCE_INLINE === "1"
+  );
+}
 
 const REG_COOKIE = "mo_reg_otp";
 const OTP_TTL_MS = 10 * 60 * 1000;
@@ -146,6 +156,20 @@ export async function registerAction(
     lastSentAt: Date.now(),
   };
 
+  await setPendingCookie(pending);
+
+  // No custom domain: show code on screen (Resend test sender cannot email arbitrary addresses)
+  if (registrationUsesInlineOtpOnly()) {
+    return {
+      success: "otp_sent",
+      email,
+      expiresAt: new Date(expiresAt).toISOString(),
+      inlineCode: code,
+      warning:
+        "دۆمەینت نییە — کۆدەکە لە خوارەوە دەردەکەوێت. بینووسە و بەردەوام بە.",
+    };
+  }
+
   try {
     const sent = await sendRegistrationOtpEmail({
       to: email,
@@ -153,28 +177,14 @@ export async function registerAction(
       companyName: parsed.data.companyName,
     });
 
-    await setPendingCookie(pending);
-
     if (!sent.delivered) {
-      const msg = sent.errorMessage || "";
-      if (msg.includes("RESEND_API_KEY")) {
-        return {
-          error:
-            "ناردنی ئیمەیڵ ڕێکنەکراوە (RESEND_API_KEY). تکایە ڕێکخستنی Netlify بپشکنە.",
-        };
-      }
-      // Resend test mode / unverified domain: still allow verify with on-screen code
-      const testMode =
-        msg.toLowerCase().includes("own email") ||
-        msg.toLowerCase().includes("verify a domain");
       return {
         success: "otp_sent",
         email,
         expiresAt: new Date(expiresAt).toISOString(),
         inlineCode: code,
-        warning: testMode
-          ? "Resend ئێستا ناتوانێت بۆ ئەم ئیمەیڵە بنێرێت (دۆمەین پشتڕاست نەکراوە). کۆدەکە لێرە بەکاربهێنە، یان دۆمەین لە resend.com/domains پشتڕاست بکە."
-          : `ئیمەیڵ نەنێردرا. کۆدەکە لێرە بەکاربهێنە. (${msg})`,
+        warning:
+          "ئیمەیڵ نەنێردرا. کۆدەکە لە خوارەوە بەکاربهێنە.",
       };
     }
 
@@ -186,9 +196,13 @@ export async function registerAction(
   } catch (e) {
     const msg = e instanceof Error ? e.message : "";
     return {
-      error: msg
-        ? `ناردنی کۆدی ئیمەیڵ سەرنەکەوت: ${msg}`
-        : "ناردنی کۆدی ئیمەیڵ سەرنەکەوت. دووبارە هەوڵبدەرەوە.",
+      success: "otp_sent",
+      email,
+      expiresAt: new Date(expiresAt).toISOString(),
+      inlineCode: code,
+      warning: msg
+        ? `ئیمەیڵ نەنێردرا. کۆدەکە لێرە بەکاربهێنە.`
+        : "ئیمەیڵ نەنێردرا. کۆدەکە لێرە بەکاربهێنە.",
     };
   }
 }
@@ -230,13 +244,23 @@ export async function resendRegisterOtpAction(
     lastSentAt: Date.now(),
   };
 
+  await setPendingCookie(next);
+
+  if (registrationUsesInlineOtpOnly()) {
+    return {
+      success: "otp_sent",
+      email: pending.email,
+      expiresAt: new Date(expiresAt).toISOString(),
+      inlineCode: code,
+      warning: "کۆدی نوێ — لە خوارەوە بینووسە.",
+    };
+  }
+
   const sent = await sendRegistrationOtpEmail({
     to: pending.email,
     code,
     companyName: pending.companyName,
   });
-
-  await setPendingCookie(next);
 
   if (!sent.delivered) {
     return {
@@ -244,8 +268,7 @@ export async function resendRegisterOtpAction(
       email: pending.email,
       expiresAt: new Date(expiresAt).toISOString(),
       inlineCode: code,
-      warning:
-        "ئیمەیڵ نەنێردرا. کۆدی نوێ لێرە بەکاربهێنە (یان دۆمەین لە Resend پشتڕاست بکە).",
+      warning: "ئیمەیڵ نەنێردرا. کۆدی نوێ لێرە بەکاربهێنە.",
     };
   }
 

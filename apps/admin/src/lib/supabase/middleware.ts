@@ -1,6 +1,7 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import { isEmployeePortalAllowed } from "@/lib/auth/mobile";
+import { getPublicSupabaseEnv } from "@/lib/supabase/env";
 
 function isServerAction(request: NextRequest) {
   return (
@@ -30,8 +31,7 @@ function clearLegacySurfaceCookie(res: NextResponse) {
 export async function updateSession(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request });
 
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  const { url, anonKey: key } = getPublicSupabaseEnv();
 
   if (!url || !key) {
     return clearLegacySurfaceCookie(supabaseResponse);

@@ -6,7 +6,7 @@
 [build.environment]
   NODE_VERSION = "20"
   NPM_FLAGS = "--legacy-peer-deps"
-  MEDIA_OFFICE_BUILD_ID = "console-harden-v1"
+  MEDIA_OFFICE_BUILD_ID = "fix-api-keys-v1"
 
 [[plugins]]
   package = "@netlify/plugin-nextjs"

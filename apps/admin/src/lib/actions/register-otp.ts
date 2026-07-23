@@ -10,6 +10,12 @@ import {
   provisionWorkspaceWithServiceRole,
   slugifyCompany,
 } from "@/lib/auth/provision-workspace";
+import {
+  assertAnonKey,
+  assertServiceRoleKey,
+  getPublicSupabaseEnv,
+  getServiceRoleKey,
+} from "@/lib/supabase/env";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceClient, hasServiceRoleKey } from "@/lib/supabase/service";
 
@@ -18,6 +24,36 @@ export type RegisterOtpState = {
   success?: string;
   email?: string;
 };
+
+function mapKeyError(message: string): string | null {
+  const msg = message.toLowerCase();
+  if (
+    msg.includes("invalid api key") ||
+    msg.includes("jwt") ||
+    msg.includes("supabase_anon_key_invalid") ||
+    msg.includes("supabase_service_key_invalid") ||
+    msg.includes("supabase_env_missing") ||
+    msg.includes("supabase_service_env_missing")
+  ) {
+    return "کلیلی Supabase هەڵەیە یان لەگەڵ پڕۆژەکە ناگونجێت. لە Netlify دڵنیابە لە NEXT_PUBLIC_SUPABASE_URL، NEXT_PUBLIC_SUPABASE_ANON_KEY (anon) و SUPABASE_SERVICE_ROLE_KEY (service_role) — پاشان Redeploy بکە.";
+  }
+  return null;
+}
+
+function preflightEnv(): string | null {
+  const { url, anonKey, ok } = getPublicSupabaseEnv();
+  if (!ok) {
+    return "ڕێکخستنی Supabase ناتەواوە (URL/ANON). گۆڕاوەکانی Netlify بپشکنە.";
+  }
+  const anonProblem = assertAnonKey(url, anonKey);
+  if (anonProblem) return mapKeyError(anonProblem) || anonProblem;
+
+  if (hasServiceRoleKey()) {
+    const serviceProblem = assertServiceRoleKey(url, getServiceRoleKey());
+    if (serviceProblem) return mapKeyError(serviceProblem) || serviceProblem;
+  }
+  return null;
+}
 
 async function emailAlreadyTaken(email: string): Promise<boolean | "unknown"> {
   if (!hasServiceRoleKey()) return "unknown";
@@ -63,8 +99,10 @@ async function registerViaServiceRole(input: {
     });
 
   if (createError || !created.user) {
-    const msg = (createError?.message || "").toLowerCase();
-    if (msg.includes("already") || msg.includes("registered")) {
+    const msg = createError?.message || "";
+    const mapped = mapKeyError(msg);
+    if (mapped) return { error: mapped };
+    if (msg.toLowerCase().includes("already") || msg.toLowerCase().includes("registered")) {
       return { error: "ئەم ئیمەیڵە پێشتر تۆمارکراوە. تکایە بچۆ ژوورەوە." };
     }
     return {
@@ -121,6 +159,8 @@ async function registerViaSignUp(input: {
   });
 
   if (error) {
+    const mapped = mapKeyError(error.message);
+    if (mapped) return { error: mapped };
     const msg = error.message.toLowerCase();
     if (msg.includes("already") || msg.includes("registered")) {
       return { error: "ئەم ئیمەیڵە پێشتر تۆمارکراوە. تکایە بچۆ ژوورەوە." };
@@ -230,6 +270,9 @@ export async function registerAction(
   _prev: RegisterOtpState,
   formData: FormData,
 ): Promise<RegisterOtpState> {
+  const envError = preflightEnv();
+  if (envError) return { error: envError };
+
   const slots = await getAdminRegistrationStatus();
   if (slots.known && slots.used >= slots.maxAllowed) {
     return {
@@ -265,6 +308,8 @@ export async function registerAction(
       return await registerViaServiceRole({ email, password, companyName });
     } catch (e) {
       const msg = e instanceof Error ? e.message : "";
+      const mapped = mapKeyError(msg);
+      if (mapped) return { error: mapped };
       return {
         error: `دروستکردنی هەژمار سەرنەکەوت${msg ? `: ${msg}` : ""}.`,
       };
@@ -276,6 +321,8 @@ export async function registerAction(
     return await registerViaSignUp({ email, password, companyName });
   } catch (e) {
     const msg = e instanceof Error ? e.message : "";
+    const mapped = mapKeyError(msg);
+    if (mapped) return { error: mapped };
     return {
       error: `دروستکردنی هەژمار سەرنەکەوت${msg ? `: ${msg}` : ""}. SUPABASE_SERVICE_ROLE_KEY لە Netlify دابنێ.`,
     };

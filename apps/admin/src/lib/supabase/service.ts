@@ -1,24 +1,25 @@
 import { createClient } from "@supabase/supabase-js";
-
-function serviceRoleKey() {
-  return (
-    process.env.SUPABASE_SERVICE_ROLE_KEY ||
-    process.env.SUPABASE_SERVICE_KEY ||
-    process.env.SERVICE_ROLE_KEY ||
-    ""
-  );
-}
+import {
+  assertServiceRoleKey,
+  getPublicSupabaseEnv,
+  getServiceRoleKey,
+} from "@/lib/supabase/env";
 
 export function hasServiceRoleKey() {
-  return Boolean(process.env.NEXT_PUBLIC_SUPABASE_URL && serviceRoleKey());
+  const { url } = getPublicSupabaseEnv();
+  return Boolean(url && getServiceRoleKey());
 }
 
-/** Service-role client for privileged auth ops. Server-only. */
+/** Service-role client for privileged auth ops. Server-only — never expose to browser. */
 export function createServiceClient() {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const key = serviceRoleKey();
+  const { url } = getPublicSupabaseEnv();
+  const key = getServiceRoleKey();
   if (!url || !key) {
     throw new Error("SUPABASE_SERVICE_ENV_MISSING");
+  }
+  const problem = assertServiceRoleKey(url, key);
+  if (problem) {
+    throw new Error(`SUPABASE_SERVICE_KEY_INVALID: ${problem}`);
   }
   return createClient(url, key, {
     auth: {

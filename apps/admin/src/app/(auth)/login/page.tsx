@@ -8,7 +8,7 @@ export default async function LoginPage() {
   const slots = await getAdminRegistrationStatus();
 
   return (
-    <AuthShell title={ckb.welcomeBack} subtitle={ckb.tagline}>
+    <AuthShell title="چوونەژوورەوەی ئەدمین" subtitle={ckb.tagline}>
       <Suspense fallback={<p className="text-sm text-ink-muted">{ckb.loading}</p>}>
         <LoginForm registrationOpen={slots.open} />
       </Suspense>

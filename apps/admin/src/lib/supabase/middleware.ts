@@ -21,6 +21,18 @@ function isStaff(role: string | undefined) {
   return role === "admin" || role === "manager";
 }
 
+/** Wipe legacy cookie that used to force /login → /employee/login */
+function clearLegacySurfaceCookie(res: NextResponse) {
+  res.cookies.set("mo_surface", "", {
+    path: "/",
+    maxAge: 0,
+    sameSite: "lax",
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+  });
+  return res;
+}
+
 export async function updateSession(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request });
 
@@ -28,7 +40,7 @@ export async function updateSession(request: NextRequest) {
   const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
   if (!url || !key) {
-    return supabaseResponse;
+    return clearLegacySurfaceCookie(supabaseResponse);
   }
 
   const supabase = createServerClient(url, key, {
@@ -53,8 +65,8 @@ export async function updateSession(request: NextRequest) {
   } = await supabase.auth.getUser();
 
   const path = request.nextUrl.pathname;
-  // Strict prefix: /employee and /employee/... only — never /employees (admin)
-  const isEmployeeApp =
+  // Only /employee and /employee/... — never /employees (admin)
+  const isEmployeeRoute =
     path === "/employee" || path.startsWith("/employee/");
   const isEmployeeLogin = path === "/employee/login";
   const isEmployeeForgot = path === "/employee/forgot-password";
@@ -75,91 +87,69 @@ export async function updateSession(request: NextRequest) {
   const ua = request.headers.get("user-agent") || "";
   const mobileOk = allowDesktopEmployee || isMobileUserAgent(ua);
 
-  const stampEmployeeSurface = (res: NextResponse) => {
-    res.cookies.set("mo_surface", "employee", {
-      path: "/",
-      maxAge: 60 * 60 * 24 * 180,
-      sameSite: "lax",
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-    });
-    return res;
-  };
-
-  const stampAdminSurface = (res: NextResponse) => {
-    res.cookies.set("mo_surface", "admin", {
-      path: "/",
-      maxAge: 60 * 60 * 24 * 180,
-      sameSite: "lax",
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-    });
-    return res;
-  };
-
-  // ——— Employee routes: only /employee/* ———
-  if (
-    (isEmployeeApp || isEmployeeLogin || isEmployeeForgot) &&
-    !isEmployeeBlocked &&
-    !mobileOk
-  ) {
-    const redirectUrl = request.nextUrl.clone();
-    redirectUrl.pathname = "/employee/desktop-blocked";
-    return stampEmployeeSurface(NextResponse.redirect(redirectUrl));
-  }
-
-  if (isEmployeeBlocked) {
-    return stampEmployeeSurface(supabaseResponse);
-  }
-
-  if (isEmployeeLogin || isEmployeeForgot) {
-    if (user && !actionRequest && isEmployeeLogin) {
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("role, is_active")
-        .eq("id", user.id)
-        .maybeSingle();
-      if (profile?.role === "employee" && profile.is_active) {
-        const redirectUrl = request.nextUrl.clone();
-        redirectUrl.pathname = "/employee";
-        return stampEmployeeSurface(NextResponse.redirect(redirectUrl));
-      }
-      if (isStaff(profile?.role) && profile?.is_active) {
-        const redirectUrl = request.nextUrl.clone();
-        redirectUrl.pathname = "/";
-        return stampAdminSurface(NextResponse.redirect(redirectUrl));
-      }
+  // ===================== EMPLOYEE (/employee/*) =====================
+  if (isEmployeeRoute) {
+    if (isEmployeeBlocked) {
+      return clearLegacySurfaceCookie(supabaseResponse);
     }
-    return stampEmployeeSurface(supabaseResponse);
-  }
 
-  if (isEmployeeApp) {
+    if (!mobileOk) {
+      const redirectUrl = request.nextUrl.clone();
+      redirectUrl.pathname = "/employee/desktop-blocked";
+      return clearLegacySurfaceCookie(NextResponse.redirect(redirectUrl));
+    }
+
+    if (isEmployeeLogin || isEmployeeForgot) {
+      if (user && !actionRequest && isEmployeeLogin) {
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("role, is_active")
+          .eq("id", user.id)
+          .maybeSingle();
+        if (profile?.role === "employee" && profile.is_active) {
+          const redirectUrl = request.nextUrl.clone();
+          redirectUrl.pathname = "/employee";
+          return clearLegacySurfaceCookie(NextResponse.redirect(redirectUrl));
+        }
+        if (isStaff(profile?.role) && profile?.is_active) {
+          const redirectUrl = request.nextUrl.clone();
+          redirectUrl.pathname = "/";
+          return clearLegacySurfaceCookie(NextResponse.redirect(redirectUrl));
+        }
+      }
+      return clearLegacySurfaceCookie(supabaseResponse);
+    }
+
     if (!user) {
       const redirectUrl = request.nextUrl.clone();
       redirectUrl.pathname = "/employee/login";
-      return stampEmployeeSurface(NextResponse.redirect(redirectUrl));
+      return clearLegacySurfaceCookie(NextResponse.redirect(redirectUrl));
     }
+
     const { data: profile } = await supabase
       .from("profiles")
       .select("role, is_active")
       .eq("id", user.id)
       .maybeSingle();
+
     if (isStaff(profile?.role) && profile?.is_active) {
       const redirectUrl = request.nextUrl.clone();
       redirectUrl.pathname = "/";
-      return stampAdminSurface(NextResponse.redirect(redirectUrl));
+      return clearLegacySurfaceCookie(NextResponse.redirect(redirectUrl));
     }
+
     if (!profile || profile.role !== "employee" || !profile.is_active) {
       const redirectUrl = request.nextUrl.clone();
       redirectUrl.pathname = "/employee/login";
       redirectUrl.searchParams.set("error", "employee_only");
-      return stampEmployeeSurface(NextResponse.redirect(redirectUrl));
+      return clearLegacySurfaceCookie(NextResponse.redirect(redirectUrl));
     }
-    return stampEmployeeSurface(supabaseResponse);
+
+    return clearLegacySurfaceCookie(supabaseResponse);
   }
 
-  // ——— Admin routes: /login, /register, dashboard, etc. ———
-  // Never hijack these based on mo_surface cookie.
+  // ===================== ADMIN (path-based only) =====================
+  // Never redirect /login based on cookies.
   if (isAdminAuth) {
     const isPasswordFlow =
       path.startsWith("/forgot-password") ||
@@ -177,22 +167,22 @@ export async function updateSession(request: NextRequest) {
       if (profile?.role === "employee" && profile.is_active) {
         const redirectUrl = request.nextUrl.clone();
         redirectUrl.pathname = "/employee";
-        return stampEmployeeSurface(NextResponse.redirect(redirectUrl));
+        return clearLegacySurfaceCookie(NextResponse.redirect(redirectUrl));
       }
       if (isStaff(profile?.role) && profile?.is_active) {
         const redirectUrl = request.nextUrl.clone();
         redirectUrl.pathname = "/";
-        return stampAdminSurface(NextResponse.redirect(redirectUrl));
+        return clearLegacySurfaceCookie(NextResponse.redirect(redirectUrl));
       }
     }
-    return stampAdminSurface(supabaseResponse);
+    return clearLegacySurfaceCookie(supabaseResponse);
   }
 
   if (!user) {
     const redirectUrl = request.nextUrl.clone();
     redirectUrl.pathname = "/login";
     redirectUrl.search = "";
-    return stampAdminSurface(NextResponse.redirect(redirectUrl));
+    return clearLegacySurfaceCookie(NextResponse.redirect(redirectUrl));
   }
 
   const { data: profile } = await supabase
@@ -204,7 +194,7 @@ export async function updateSession(request: NextRequest) {
   if (profile?.role === "employee" && profile.is_active) {
     const redirectUrl = request.nextUrl.clone();
     redirectUrl.pathname = "/employee";
-    return stampEmployeeSurface(NextResponse.redirect(redirectUrl));
+    return clearLegacySurfaceCookie(NextResponse.redirect(redirectUrl));
   }
 
   if (!profile || !isStaff(profile.role) || !profile.is_active) {
@@ -212,7 +202,7 @@ export async function updateSession(request: NextRequest) {
     const redirectUrl = request.nextUrl.clone();
     redirectUrl.pathname = "/login";
     redirectUrl.searchParams.set("error", "admin_only");
-    return stampAdminSurface(NextResponse.redirect(redirectUrl));
+    return clearLegacySurfaceCookie(NextResponse.redirect(redirectUrl));
   }
 
   if (profile.role === "manager") {
@@ -223,9 +213,9 @@ export async function updateSession(request: NextRequest) {
     if (blocked) {
       const redirectUrl = request.nextUrl.clone();
       redirectUrl.pathname = "/";
-      return stampAdminSurface(NextResponse.redirect(redirectUrl));
+      return clearLegacySurfaceCookie(NextResponse.redirect(redirectUrl));
     }
   }
 
-  return stampAdminSurface(supabaseResponse);
+  return clearLegacySurfaceCookie(supabaseResponse);
 }

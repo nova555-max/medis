@@ -428,5 +428,3 @@ export async function setPasswordWithOtpAction(
 
   redirect("/reset-password/success");
 }
-
-export { validatePasswordRules };

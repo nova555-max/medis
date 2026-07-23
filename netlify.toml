@@ -6,8 +6,7 @@
 [build.environment]
   NODE_VERSION = "20"
   NPM_FLAGS = "--legacy-peer-deps"
-  # Bump to force Netlify rebuild when middleware routing changes
-  MEDIA_OFFICE_BUILD_ID = "admin-employee-split-v3"
+  MEDIA_OFFICE_BUILD_ID = "netlify-build-hardening-v1"
 
 [[plugins]]
   package = "@netlify/plugin-nextjs"

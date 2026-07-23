@@ -11,9 +11,12 @@ export default function EmployeeLayout({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
-  const isLogin = pathname === "/employee/login";
+  const isBarePage =
+    pathname === "/employee/login" ||
+    pathname === "/employee/forgot-password" ||
+    pathname === "/employee/desktop-blocked";
 
-  if (isLogin) {
+  if (isBarePage) {
     return <>{children}</>;
   }
 

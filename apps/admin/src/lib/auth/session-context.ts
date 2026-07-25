@@ -28,11 +28,16 @@ export const getAdminContext = cache(async (): Promise<AdminContext | null> => {
   } = await supabase.auth.getUser();
   if (!user) return null;
 
-  const { data: profile } = await supabase
+  const { data: profile, error: profileError } = await supabase
     .from("profiles")
-    .select("full_name, email, company_id, role, is_active, companies(name)")
+    .select("full_name, email, company_id, role, is_active")
     .eq("id", user.id)
     .maybeSingle();
+
+  if (profileError) {
+    console.error("getAdminContext profile:", profileError.message);
+    return null;
+  }
 
   if (
     !profile ||
@@ -43,13 +48,11 @@ export const getAdminContext = cache(async (): Promise<AdminContext | null> => {
     return null;
   }
 
-  const companyJoin = profile.companies as
-    | { name?: string }
-    | { name?: string }[]
-    | null;
-  const companyName = Array.isArray(companyJoin)
-    ? companyJoin[0]?.name
-    : companyJoin?.name;
+  const { data: company } = await supabase
+    .from("companies")
+    .select("name")
+    .eq("id", profile.company_id)
+    .maybeSingle();
 
   return {
     userId: user.id,
@@ -61,7 +64,7 @@ export const getAdminContext = cache(async (): Promise<AdminContext | null> => {
       role: profile.role,
       is_active: profile.is_active,
     },
-    companyName: companyName ?? undefined,
+    companyName: company?.name ?? undefined,
     companyId: profile.company_id,
   };
 });

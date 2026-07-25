@@ -13,7 +13,7 @@ export function getOrCreateDeviceId(): string {
     }
     return id;
   } catch {
-    return `d-${Date.now()}`;
+    return `d-${Date.now()}-${Math.random().toString(36).slice(2, 12)}`;
   }
 }
 

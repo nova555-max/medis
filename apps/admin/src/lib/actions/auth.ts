@@ -34,8 +34,7 @@ export async function loginAction(
     return { error: ENV_ERROR };
   }
 
-  await supabase.auth.signOut();
-
+  // Do not signOut first — clears cookies mid-request and can break sign-in on Netlify/SSR
   const { error } = await supabase.auth.signInWithPassword(parsed.data);
 
   if (error) {
@@ -50,13 +49,22 @@ export async function loginAction(
     return { error: "چوونەژوورەوە سەرنەکەوت." };
   }
 
-  const { data: profile } = await supabase
+  const { data: profile, error: profileError } = await supabase
     .from("profiles")
-    .select("role, is_active")
+    .select("role, is_active, company_id")
     .eq("id", user.id)
     .maybeSingle();
 
-  if (!profile || profile.role !== "admin" || !profile.is_active) {
+  if (profileError) {
+    console.error("login profile:", profileError.message);
+    await supabase.auth.signOut();
+    return { error: "نەتوانرا پرۆفایل بخوێنرێتەوە. دووبارە هەوڵ بدە." };
+  }
+
+  const isStaff =
+    profile?.role === "admin" || profile?.role === "manager";
+
+  if (!profile || !isStaff || !profile.is_active || !profile.company_id) {
     await supabase.auth.signOut();
     return {
       error:

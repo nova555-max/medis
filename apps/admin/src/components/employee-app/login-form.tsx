@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useActionState, useEffect, useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import {
   employeeLoginAction,
   type EmployeeAuthState,
@@ -14,9 +14,21 @@ import { ckb } from "@/lib/ckb";
 
 const initial: EmployeeAuthState = {};
 
+function readDeviceFields() {
+  if (typeof window === "undefined") {
+    return { deviceId: "", deviceLabel: "مۆبایل" };
+  }
+  return {
+    deviceId: getOrCreateDeviceId(),
+    deviceLabel: getDeviceLabel(),
+  };
+}
+
 export function EmployeeLoginForm() {
-  const router = useRouter();
-  const [state, formAction, pending] = useActionState(employeeLoginAction, initial);
+  const [state, formAction, pending] = useActionState(
+    employeeLoginAction,
+    initial,
+  );
   const searchParams = useSearchParams();
   const errParam = searchParams.get("error");
   const paramError =
@@ -28,29 +40,47 @@ export function EmployeeLoginForm() {
           ? "هەژمارەکەت چالاک نییە."
           : null;
   const [deviceId, setDeviceId] = useState("");
-  const [deviceLabel, setDeviceLabel] = useState("");
+  const [deviceLabel, setDeviceLabel] = useState("مۆبایل");
 
   useEffect(() => {
-    setDeviceId(getOrCreateDeviceId());
-    setDeviceLabel(getDeviceLabel());
+    const d = readDeviceFields();
+    setDeviceId(d.deviceId);
+    setDeviceLabel(d.deviceLabel);
   }, []);
 
   useEffect(() => {
     if (state.success) {
-      router.replace("/employee");
-      router.refresh();
+      window.location.assign("/employee");
     }
-  }, [state.success, router]);
+  }, [state.success]);
 
   return (
-    <form action={formAction} className="space-y-4">
+    <form
+      action={formAction}
+      className="space-y-4"
+      onSubmit={() => {
+        // Ensure device fields exist even if first paint had empty hidden inputs
+        const d = readDeviceFields();
+        setDeviceId(d.deviceId);
+        setDeviceLabel(d.deviceLabel);
+        const idInput = document.querySelector<HTMLInputElement>(
+          'input[name="deviceId"]',
+        );
+        const labelInput = document.querySelector<HTMLInputElement>(
+          'input[name="deviceLabel"]',
+        );
+        if (idInput) idInput.value = d.deviceId;
+        if (labelInput) labelInput.value = d.deviceLabel;
+      }}
+    >
       <input type="hidden" name="deviceId" value={deviceId} />
       <input type="hidden" name="deviceLabel" value={deviceLabel} />
       {(state.error || paramError) && (
         <div className="rounded-xl border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-700 dark:border-red-800 dark:bg-red-950/40 dark:text-red-300">
           {state.error || paramError}
         </div>
-      )}      <p className="text-xs text-ink-muted">
+      )}
+      <p className="text-xs text-ink-muted">
         ئەگەر مۆبایل بگۆڕیت، دەتوانیت ئاسایی بچیتە ژوورەوە — ئەدمین تەنها ئاگادار
         دەکرێتەوە.
       </p>
@@ -89,7 +119,7 @@ export function EmployeeLoginForm() {
           autoComplete="current-password"
         />
       </div>
-      <Button type="submit" className="w-full" disabled={pending || !deviceId}>
+      <Button type="submit" className="w-full" disabled={pending}>
         {pending ? ckb.loading : ckb.login}
       </Button>
     </form>

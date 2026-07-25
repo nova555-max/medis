@@ -27,9 +27,26 @@ export async function employeeLoginAction(
 
   if (!rawId || !password) return { error: "زانیارییەکان نادروستن." };
   if (!deviceId || deviceId.length < 8) {
-    return { error: "ناسنامەی مۆبایل نەدۆزرایەوە — پەڕەکە نوێ بکەوە." };
+    // Last-resort server-side id so login is not blocked by empty client field
+    const fallback = `srv-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+    // use fallback below
+    return employeeLoginWithDevice(
+      rawId,
+      password,
+      fallback,
+      deviceLabel || "مۆبایل",
+    );
   }
 
+  return employeeLoginWithDevice(rawId, password, deviceId, deviceLabel);
+}
+
+async function employeeLoginWithDevice(
+  rawId: string,
+  password: string,
+  deviceId: string,
+  deviceLabel: string,
+): Promise<EmployeeAuthState> {
   const email = employeeIdToEmail(rawId);
 
   const supabase = await createClient();
@@ -66,23 +83,13 @@ export async function employeeLoginAction(
     return { error: "هەژمارەکەت چالاک نییە." };
   }
 
-  const { data: deviceResult, error: deviceError } = await supabase.rpc(
-    "employee_register_device",
-    {
-      p_device_id: deviceId,
-      p_device_label: deviceLabel || null,
-    },
-  );
+  const { error: deviceError } = await supabase.rpc("employee_register_device", {
+    p_device_id: deviceId,
+    p_device_label: deviceLabel || null,
+  });
 
   if (deviceError) {
-    // Still allow login if device RPC fails — do not lock employee out
     console.error("employee_register_device:", deviceError.message);
-  } else {
-    const result = deviceResult as { ok?: boolean; status?: string } | null;
-    // Legacy RPC returned ok:false for pending approval — ignore and allow login
-    if (result && result.ok === false && result.status === "pending_approval") {
-      // no-op: employee may enter; admin was notified by older RPC if any
-    }
   }
 
   return { success: "ok" };

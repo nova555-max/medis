@@ -72,14 +72,16 @@ export async function updateSession(request: NextRequest) {
   const ua = request.headers.get("user-agent") || "";
   const mobileOk = isEmployeePortalAllowed(ua);
 
-  // No session cookie → skip Supabase auth round-trip on public pages
-  const hasSessionCookie = request.cookies
-    .getAll()
-    .some(
-      (c) =>
-        c.name.includes("auth-token") ||
-        (c.name.startsWith("sb-") && c.name.includes("auth")),
+  // Prefer real session cookie; ignore PKCE leftovers that look like auth cookies
+  const hasSessionCookie = request.cookies.getAll().some((c) => {
+    const n = c.name;
+    if (n.includes("code-verifier")) return false;
+    if (!c.value || c.value.length < 10) return false;
+    return (
+      n.includes("auth-token") ||
+      (n.startsWith("sb-") && n.includes("-auth-token"))
     );
+  });
 
   if (!hasSessionCookie) {
     if (isEmployeeBlocked) {

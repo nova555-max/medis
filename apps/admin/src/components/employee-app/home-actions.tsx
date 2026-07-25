@@ -44,6 +44,7 @@ export function EmployeeHomeActions({
   const [selfieFile, setSelfieFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [cameraOn, setCameraOn] = useState(false);
   const streamRef = useRef<MediaStream | null>(null);
 
@@ -54,24 +55,62 @@ export function EmployeeHomeActions({
     };
   }, []);
 
+  // Attach stream AFTER video mounts (cameraOn=true). Previous bug: srcObject set while video was unmounted.
+  useEffect(() => {
+    if (!cameraOn) return;
+    const video = videoRef.current;
+    const stream = streamRef.current;
+    if (!video || !stream) return;
+    video.srcObject = stream;
+    video.muted = true;
+    video.setAttribute("playsinline", "true");
+    const play = () => {
+      void video.play().catch(() => {
+        /* autoplay policies — user already tapped open camera */
+      });
+    };
+    if (video.readyState >= 2) play();
+    else video.onloadedmetadata = play;
+    return () => {
+      video.onloadedmetadata = null;
+    };
+  }, [cameraOn]);
+
   const done = checkedIn && checkedOut;
   const mode: "in" | "out" | "done" = done ? "done" : checkedIn ? "out" : "in";
 
   async function startCamera() {
+    setError(null);
     try {
       stopCamera();
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: "user" },
-        audio: false,
-      });
-      streamRef.current = stream;
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-        await videoRef.current.play();
+      if (!navigator.mediaDevices?.getUserMedia) {
+        setError("ئەم وێبگەڕە پشتگیری کامێرا ناکات — وێنە لە گەلەری هەڵبژێرە");
+        fileInputRef.current?.click();
+        return;
       }
+      let stream: MediaStream;
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({
+          audio: false,
+          video: {
+            facingMode: { ideal: "user" },
+            width: { ideal: 720 },
+            height: { ideal: 720 },
+          },
+        });
+      } catch {
+        stream = await navigator.mediaDevices.getUserMedia({
+          audio: false,
+          video: true,
+        });
+      }
+      streamRef.current = stream;
       setCameraOn(true);
     } catch {
-      setError("نەتوانرا کامێرا بکرێتەوە");
+      setError(
+        "نەتوانرا کامێرا بکرێتەوە — مۆڵەتی کامێرا بدە یان وێنە لە گەلەری هەڵبژێرە",
+      );
+      fileInputRef.current?.click();
     }
   }
 
@@ -85,15 +124,24 @@ export function EmployeeHomeActions({
   function captureSelfie() {
     const video = videoRef.current;
     if (!video) return;
+    const w = video.videoWidth || 640;
+    const h = video.videoHeight || 480;
+    if (w < 2 || h < 2) {
+      setError("کامێرا هێشتا ئامادە نییە — چەند چرکەیەک چاوەڕوان بە");
+      return;
+    }
     const canvas = document.createElement("canvas");
-    canvas.width = video.videoWidth || 640;
-    canvas.height = video.videoHeight || 480;
+    canvas.width = w;
+    canvas.height = h;
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
-    ctx.drawImage(video, 0, 0);
+    ctx.drawImage(video, 0, 0, w, h);
     canvas.toBlob(
       (blob) => {
-        if (!blob) return;
+        if (!blob) {
+          setError("وێنەگرتن سەرنەکەوت");
+          return;
+        }
         const file = new File([blob], `selfie-${Date.now()}.jpg`, {
           type: "image/jpeg",
         });
@@ -103,10 +151,25 @@ export function EmployeeHomeActions({
           return URL.createObjectURL(blob);
         });
         stopCamera();
+        setError(null);
       },
       "image/jpeg",
       0.85,
     );
+  }
+
+  function onFilePicked(file: File | null) {
+    if (!file || !file.type.startsWith("image/")) {
+      setError("تکایە وێنەیەک هەڵبژێرە");
+      return;
+    }
+    stopCamera();
+    setSelfieFile(file);
+    setPreview((prev) => {
+      if (prev?.startsWith("blob:")) URL.revokeObjectURL(prev);
+      return URL.createObjectURL(file);
+    });
+    setError(null);
   }
 
   function run() {
@@ -127,7 +190,9 @@ export function EmployeeHomeActions({
       if (gpsEnabled) {
         coords = await getLocation();
         if (!coords) {
-          setError("نەتوانرا شوێن بخوێنرێتەوە — مۆڵەتی شوێن لە ڕێکخستنی مۆبایل بدە");
+          setError(
+            "نەتوانرا شوێن بخوێنرێتەوە — مۆڵەتی شوێن لە ڕێکخستنی مۆبایل بدە",
+          );
           return;
         }
       }
@@ -216,22 +281,44 @@ export function EmployeeHomeActions({
 
         {mode === "in" && selfieRequired && (
           <div className="relative mx-auto mt-3 max-w-sm space-y-2">
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              capture="user"
+              className="hidden"
+              onChange={(e) => {
+                onFilePicked(e.target.files?.[0] ?? null);
+                e.target.value = "";
+              }}
+            />
             {!preview && !cameraOn && (
-              <button
-                type="button"
-                onClick={startCamera}
-                className="w-full rounded-xl border border-line bg-surface-muted px-3 py-2 text-sm"
-              >
-                کردنەوەی کامێرا بۆ Selfie
-              </button>
+              <div className="flex flex-col gap-2">
+                <button
+                  type="button"
+                  onClick={() => void startCamera()}
+                  className="w-full rounded-xl border border-line bg-surface-muted px-3 py-2 text-sm"
+                >
+                  کردنەوەی کامێرا بۆ Selfie
+                </button>
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="w-full rounded-xl border border-dashed border-line px-3 py-2 text-xs text-ink-muted"
+                >
+                  یان وێنە لە گەلەری / کامێرای سیستەم
+                </button>
+              </div>
             )}
             {cameraOn && (
               <div className="space-y-2">
                 <video
                   ref={videoRef}
+                  autoPlay
                   playsInline
                   muted
-                  className="mx-auto h-40 w-full rounded-xl object-cover"
+                  controls={false}
+                  className="mx-auto h-48 w-full rounded-xl bg-black object-cover"
                 />
                 <div className="flex gap-2">
                   <button
@@ -267,7 +354,7 @@ export function EmployeeHomeActions({
                       return null;
                     });
                     setSelfieFile(null);
-                    startCamera();
+                    void startCamera();
                   }}
                   className="text-xs text-brand-700"
                 >

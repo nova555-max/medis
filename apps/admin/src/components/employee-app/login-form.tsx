@@ -51,8 +51,8 @@ export function EmployeeLoginForm() {
           {state.error || paramError}
         </div>
       )}      <p className="text-xs text-ink-muted">
-        تەنها لە یەک مۆبایل دەتوانیت بچیتە ژوورەوە. گەر مۆبایل بگۆڕیت، ئەدمین
-        دەبێت پەسەندی بکات.
+        ئەگەر مۆبایل بگۆڕیت، دەتوانیت ئاسایی بچیتە ژوورەوە — ئەدمین تەنها ئاگادار
+        دەکرێتەوە.
       </p>
       <div>
         <Label htmlFor="employeeId">ئایدی کارمەند (١٠ ژمارە)</Label>

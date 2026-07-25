@@ -75,21 +75,14 @@ export async function employeeLoginAction(
   );
 
   if (deviceError) {
-    await supabase.auth.signOut();
-    return { error: "پشکنینی مۆبایل سەرنەکەوت." };
-  }
-
-  const result = deviceResult as {
-    ok?: boolean;
-    status?: string;
-  } | null;
-
-  if (!result?.ok) {
-    await supabase.auth.signOut();
-    return {
-      error:
-        "ئەم مۆبایلە تۆمار نەکراوە. داواکاری بۆ ئەدمین نێردرا — دوای پەسەندکردن دەتوانیت بچیتە ژوورەوە.",
-    };
+    // Still allow login if device RPC fails — do not lock employee out
+    console.error("employee_register_device:", deviceError.message);
+  } else {
+    const result = deviceResult as { ok?: boolean; status?: string } | null;
+    // Legacy RPC returned ok:false for pending approval — ignore and allow login
+    if (result && result.ok === false && result.status === "pending_approval") {
+      // no-op: employee may enter; admin was notified by older RPC if any
+    }
   }
 
   return { success: "ok" };

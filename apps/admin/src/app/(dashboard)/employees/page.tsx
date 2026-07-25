@@ -292,13 +292,6 @@ export default async function EmployeesPage({
                         ? (e as { bound_device_label?: string | null })
                             .bound_device_label || "بەستراو"
                         : "نەبەستراو"}
-                      {(e as { pending_device_id?: string | null })
-                        .pending_device_id ? (
-                        <span className="mr-1 text-amber-700">
-                          {" "}
-                          · داواکاری نوێ
-                        </span>
-                      ) : null}
                       {monthNet != null ? (
                         <>
                           {" · "}کۆی ئەم مانگە:{" "}

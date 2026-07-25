@@ -127,7 +127,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
 
         const deviceId = await getOrCreateMobileDeviceId();
-        const { data: deviceResult, error: deviceError } = await supabase.rpc(
+        const { error: deviceError } = await supabase.rpc(
           "employee_register_device",
           {
             p_device_id: deviceId,
@@ -136,16 +136,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         );
 
         if (deviceError) {
-          await supabase.auth.signOut();
-          setProfile(null);
-          return "پشکنینی مۆبایل سەرنەکەوت.";
-        }
-
-        const result = deviceResult as { ok?: boolean } | null;
-        if (!result?.ok) {
-          await supabase.auth.signOut();
-          setProfile(null);
-          return "ئەم مۆبایلە تۆمار نەکراوە. داواکاری بۆ ئەدمین نێردرا — دوای پەسەندکردن دووبارە هەوڵ بدە.";
+          console.warn("employee_register_device:", deviceError.message);
         }
 
         void registerExpoPushToken(data.user.id);

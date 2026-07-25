@@ -2,7 +2,6 @@
 
 import { useActionState } from "react";
 import {
-  approveEmployeeDeviceAction,
   clearEmployeeDeviceAction,
   updateEmployeeProfileAction,
   type ActionResult,
@@ -44,10 +43,6 @@ export function EmployeeEditPanel({
   );
   const [clearState, clearAction, clearPending] = useActionState(
     clearEmployeeDeviceAction,
-    initial,
-  );
-  const [approveState, approveAction, approvePending] = useActionState(
-    approveEmployeeDeviceAction,
     initial,
   );
 
@@ -160,7 +155,10 @@ export function EmployeeEditPanel({
       </form>
 
       <div className="panel space-y-3 p-5">
-        <h2 className="text-lg font-semibold">مۆبایلی بەستراو</h2>
+        <h2 className="text-lg font-semibold">مۆبایلی ئێستا</h2>
+        <p className="text-xs text-ink-muted">
+          کارمەند دەتوانێت لە مۆبایلی نوێوە بچێتە ژوورەوە؛ تۆ ئاگاداری وەردەگریت.
+        </p>
         {employee.bound_device_id ? (
           <div className="rounded-xl bg-surface-muted/50 px-3 py-3 text-sm">
             <p className="font-medium">
@@ -171,47 +169,21 @@ export function EmployeeEditPanel({
             </p>
             {employee.bound_device_at && (
               <p className="mt-1 text-xs text-ink-muted" dir="ltr">
-                بەستراو:{" "}
+                دوایین تۆمار:{" "}
                 {employee.bound_device_at.slice(0, 16).replace("T", " ")}
               </p>
             )}
           </div>
         ) : (
           <p className="text-sm text-ink-muted">
-            هێشتا مۆبایل نەبەستراوە — یەکەم چوونەژوورەوە مۆبایل تۆمار دەکات
+            هێشتا مۆبایل تۆمار نەکراوە — یەکەم چوونەژوورەوە تۆماری دەکات
           </p>
-        )}
-
-        {employee.pending_device_id && (
-          <div className="rounded-xl border border-amber-300 bg-amber-50 p-3 dark:border-amber-800 dark:bg-amber-950/30">
-            <p className="text-sm font-semibold text-amber-900 dark:text-amber-200">
-              داواکاری مۆبایلی نوێ
-            </p>
-            <p className="mt-1 text-xs text-ink-muted">
-              {employee.pending_device_label || "مۆبایل"}
-            </p>
-            <p className="mt-1 break-all text-xs text-ink-muted" dir="ltr">
-              {employee.pending_device_id}
-            </p>
-            <form action={approveAction} className="mt-3">
-              <input type="hidden" name="employeeId" value={employee.id} />
-              <Button type="submit" disabled={approvePending}>
-                {approvePending ? ckb.loading : "پەسەندکردنی مۆبایلی نوێ"}
-              </Button>
-            </form>
-            {approveState.error && (
-              <p className="mt-2 text-sm text-red-600">{approveState.error}</p>
-            )}
-            {approveState.success && (
-              <p className="mt-2 text-sm text-brand-700">{approveState.success}</p>
-            )}
-          </div>
         )}
 
         <form action={clearAction}>
           <input type="hidden" name="employeeId" value={employee.id} />
           <Button type="submit" variant="secondary" disabled={clearPending}>
-            {clearPending ? ckb.loading : "لابردنی بەستنی مۆبایل"}
+            {clearPending ? ckb.loading : "سڕینەوەی تۆماری مۆبایل"}
           </Button>
         </form>
         {clearState.error && (

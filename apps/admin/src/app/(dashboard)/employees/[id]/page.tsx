@@ -4,6 +4,7 @@ import { EmployeeGpsForm } from "@/components/employees/employee-gps-form";
 import { EmployeeDocuments } from "@/components/employees/employee-documents";
 import { EmployeeOrgAssign } from "@/components/employees/employee-org-assign";
 import { EmployeeEditPanel } from "@/components/employees/employee-edit-panel";
+import { EmployeeAdminAccessPanel } from "@/components/employees/employee-admin-access-panel";
 import { LeaveBalancesPanel } from "@/components/employees/leave-balances-panel";
 import { createClient } from "@/lib/supabase/server";
 import { ckb } from "@/lib/ckb";
@@ -21,7 +22,7 @@ export default async function EmployeeDetailPage({
   const { data: employee } = await supabase
     .from("employees")
     .select(
-      "id, full_name, employee_code, email, phone, company_id, department_id, shift_id, employee_type, gps_enabled, gps_lat, gps_lng, gps_radius_meters, last_lat, last_lng, last_location_at, last_activity, base_salary, currency, bound_device_id, bound_device_label, bound_device_at, pending_device_id, pending_device_label, pending_device_at",
+      "id, full_name, employee_code, email, phone, status, company_id, department_id, shift_id, employee_type, gps_enabled, gps_lat, gps_lng, gps_radius_meters, last_lat, last_lng, last_location_at, last_activity, base_salary, currency, bound_device_id, bound_device_label, bound_device_at, pending_device_id, pending_device_label, pending_device_at",
     )
     .eq("id", id)
     .maybeSingle();
@@ -32,6 +33,13 @@ export default async function EmployeeDetailPage({
     (employee as { base_salary?: number }).base_salary || 0,
   );
   const currency = (employee as { currency?: string }).currency || "IQD";
+  const status = (employee as { status?: string }).status || "active";
+  const statusLabel =
+    status === "blacklisted"
+      ? "ڕەشکراو"
+      : status === "archived"
+        ? "ئەرشیفکراو"
+        : "چالاک";
 
   const [
     { data: documents },
@@ -97,7 +105,8 @@ export default async function EmployeeDetailPage({
           </h1>
           <p className="mt-1 text-sm text-ink-muted" dir="ltr">
             ئایدی: {employee.employee_code} · مووچە:{" "}
-            {baseSalary > 0 ? formatMoney(baseSalary, currency) : "—"}
+            {baseSalary > 0 ? formatMoney(baseSalary, currency) : "—"} · دۆخ:{" "}
+            {statusLabel}
           </p>
         </div>
         <Link
@@ -141,6 +150,15 @@ export default async function EmployeeDetailPage({
               .pending_device_at || null,
         }}
         departments={departments ?? []}
+      />
+
+      <EmployeeAdminAccessPanel
+        employee={{
+          id: employee.id,
+          full_name: employee.full_name,
+          employee_code: employee.employee_code,
+          status,
+        }}
       />
 
       <EmployeeOrgAssign

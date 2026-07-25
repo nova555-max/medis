@@ -28,7 +28,10 @@ export default async function EmployeesPage({
 }) {
   const sp = await searchParams;
   const q = (sp.q || "").trim();
-  const status = sp.status === "archived" ? "archived" : "active";
+  const status =
+    sp.status === "archived" || sp.status === "blacklisted"
+      ? sp.status
+      : "active";
   const typeFilter =
     sp.type === "online" || sp.type === "office" ? sp.type : "all";
 
@@ -183,6 +186,7 @@ export default async function EmployeesPage({
         >
           <option value="active">چالاک</option>
           <option value="archived">ئەرشیف</option>
+          <option value="blacklisted">ڕەشکراو</option>
         </select>
         <button
           type="submit"
@@ -335,7 +339,7 @@ export default async function EmployeesPage({
                     href={`/employees/${e.id}`}
                     className="rounded-xl border border-line bg-surface-elevated px-3 py-2 text-xs font-medium"
                   >
-                    دەستکاری / مۆبایل
+                    دەستکاری / وشەی نهێنی / دۆخ
                   </Link>
                   <Link
                     href={`/reports/employee/${e.id}`}
@@ -351,6 +355,10 @@ export default async function EmployeesPage({
                         await archiveEmployeeAction(e.id);
                       }}
                     />
+                  ) : status === "blacklisted" ? (
+                    <span className="text-xs font-medium text-amber-700">
+                      ڕەشکراو
+                    </span>
                   ) : (
                     <span className="text-xs text-ink-muted">ئەرشیفکراو</span>
                   )}

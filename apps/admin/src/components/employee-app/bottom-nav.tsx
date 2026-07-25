@@ -5,7 +5,6 @@ import { usePathname } from "next/navigation";
 import {
   Bell,
   Home,
-  MapPinned,
   UserRound,
   Wallet,
   Palmtree,
@@ -17,7 +16,6 @@ const items = [
   { href: "/employee", label: "سەرەکی", icon: Home },
   { href: "/employee/leave", label: ckb.leave, icon: Palmtree },
   { href: "/employee/salary", label: ckb.salary, icon: Wallet },
-  { href: "/employee/map", label: "نەخشە", icon: MapPinned },
   { href: "/employee/notifications", label: "ئاگاداری", icon: Bell },
   { href: "/employee/profile", label: ckb.profile, icon: UserRound },
 ];

@@ -319,6 +319,15 @@ export async function archiveEmployeeAction(id: string): Promise<ActionResult> {
   const ctx = await requireAdmin();
   if (ctx.error || !ctx.profile) return { error: ctx.error };
 
+  const { data: emp } = await ctx.supabase
+    .from("employees")
+    .select("id, user_id")
+    .eq("id", id)
+    .eq("company_id", ctx.profile.company_id)
+    .maybeSingle();
+
+  if (!emp) return { error: "کارمەند نەدۆزرایەوە." };
+
   const { error } = await ctx.supabase
     .from("employees")
     .update({ status: "archived" })
@@ -326,6 +335,13 @@ export async function archiveEmployeeAction(id: string): Promise<ActionResult> {
     .eq("company_id", ctx.profile.company_id);
 
   if (error) return { error: "ئەرشیفکردن سەرنەکەوت." };
+
+  if (emp.user_id) {
+    await ctx.supabase
+      .from("profiles")
+      .update({ is_active: false })
+      .eq("id", emp.user_id);
+  }
 
   await ctx.supabase.from("activity_logs").insert({
     company_id: ctx.profile.company_id,
@@ -336,5 +352,6 @@ export async function archiveEmployeeAction(id: string): Promise<ActionResult> {
   });
 
   revalidatePath("/employees");
+  revalidatePath(`/employees/${id}`);
   return { success: "کارمەند ئەرشیفکرا." };
 }

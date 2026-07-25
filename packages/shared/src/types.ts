@@ -1,6 +1,6 @@
 export type UserRole = "admin" | "employee";
 
-export type EmployeeStatus = "active" | "archived";
+export type EmployeeStatus = "active" | "archived" | "blacklisted";
 
 export type AttendanceStatus =
   | "present"

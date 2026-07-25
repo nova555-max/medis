@@ -191,6 +191,23 @@ export async function updateSession(request: NextRequest) {
       return clearLegacySurfaceCookie(NextResponse.redirect(redirectUrl));
     }
 
+    const { data: empStatus } = await supabase
+      .from("employees")
+      .select("status")
+      .eq("user_id", user.id)
+      .maybeSingle();
+
+    if (!empStatus || empStatus.status !== "active") {
+      await supabase.auth.signOut();
+      const redirectUrl = request.nextUrl.clone();
+      redirectUrl.pathname = "/employee/login";
+      redirectUrl.searchParams.set(
+        "error",
+        empStatus?.status === "blacklisted" ? "blacklisted" : "inactive",
+      );
+      return clearLegacySurfaceCookie(NextResponse.redirect(redirectUrl));
+    }
+
     return clearLegacySurfaceCookie(supabaseResponse);
   }
 

@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, useTransition } from "react";
-import { Check, Fingerprint, MapPin } from "lucide-react";
+import { Check, Fingerprint } from "lucide-react";
 import {
   employeeCheckInAction,
   employeeCheckOutAction,
@@ -127,7 +127,7 @@ export function EmployeeHomeActions({
       if (gpsEnabled) {
         coords = await getLocation();
         if (!coords) {
-          setError("نەتوانرا شوێن بخوێنرێتەوە — مۆڵەتی GPS بدە");
+          setError("نەتوانرا شوێن بخوێنرێتەوە — مۆڵەتی شوێن لە ڕێکخستنی مۆبایل بدە");
           return;
         }
       }
@@ -317,12 +317,6 @@ export function EmployeeHomeActions({
         </div>
 
         <div className="relative mt-3.5 flex flex-wrap items-center justify-center gap-2">
-          {gpsEnabled && mode !== "done" && (
-            <span className="inline-flex items-center gap-1 rounded-full bg-surface-muted/80 px-2.5 py-1 text-[11px] font-medium text-ink-muted">
-              <MapPin className="h-3 w-3" />
-              GPS
-            </span>
-          )}
           {qrRequired && mode === "in" && (
             <span className="rounded-full bg-brand-50 px-2.5 py-1 text-[11px] text-brand-700 dark:bg-brand-950 dark:text-brand-200">
               QR پێویستە

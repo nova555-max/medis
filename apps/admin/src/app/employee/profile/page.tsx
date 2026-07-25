@@ -17,13 +17,20 @@ export default async function EmployeeProfilePage() {
 
   const { data: emp } = await supabase
     .from("employees")
-    .select(
-      "employee_code, hire_date, status, gps_enabled, email, phone, departments(name)",
-    )
+    .select("employee_code, hire_date, status, email, phone, departments(name)")
     .eq("user_id", user!.id)
     .maybeSingle();
 
   const dept = emp?.departments as { name?: string } | null;
+
+  const statusLabel =
+    emp?.status === "blacklisted"
+      ? "ڕەشکراو"
+      : emp?.status === "archived"
+        ? "ئەرشیفکراو"
+        : emp?.status === "active"
+          ? "چالاک"
+          : emp?.status || "—";
 
   const rows = [
     { label: "ناو", value: profile?.full_name },
@@ -31,8 +38,7 @@ export default async function EmployeeProfilePage() {
     { label: "مۆبایل", value: emp?.phone || profile?.phone || "—" },
     { label: "بەش", value: dept?.name || "—" },
     { label: "بەرواری دامەزراندن", value: emp?.hire_date || "—" },
-    { label: "دۆخ", value: emp?.status },
-    { label: "GPS", value: emp?.gps_enabled ? "چالاک" : "ناکارا / ئۆنلاین" },
+    { label: "دۆخ", value: statusLabel },
   ];
 
   return (

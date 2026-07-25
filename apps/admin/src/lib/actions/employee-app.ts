@@ -52,6 +52,20 @@ export async function employeeLoginAction(
     return { error: "ئەم بەشە تەنها بۆ کارمەندانە." };
   }
 
+  const { data: empRow } = await supabase
+    .from("employees")
+    .select("status")
+    .eq("user_id", user.id)
+    .maybeSingle();
+
+  if (!empRow || empRow.status !== "active") {
+    await supabase.auth.signOut();
+    if (empRow?.status === "blacklisted") {
+      return { error: "هەژمارەکەت ڕەشکراوە — پەیوەندی بە ئەدمین بکە." };
+    }
+    return { error: "هەژمارەکەت چالاک نییە." };
+  }
+
   const { data: deviceResult, error: deviceError } = await supabase.rpc(
     "employee_register_device",
     {

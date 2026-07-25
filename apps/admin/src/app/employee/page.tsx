@@ -1,8 +1,6 @@
 import Link from "next/link";
 import { BigLiveClock } from "@/components/employee-app/big-clock";
 import { EmployeeHomeActions } from "@/components/employee-app/home-actions";
-import { WorkplaceMap } from "@/components/employee-app/workplace-map";
-import { LiveLocationTracker } from "@/components/employee-app/online-location-tracker";
 import { getEmployeeContext } from "@/lib/auth/session-context";
 import { createClient } from "@/lib/supabase/server";
 import { employeeLogoutAction } from "@/lib/actions/employee-app";
@@ -101,7 +99,6 @@ export default async function EmployeeHomePage() {
     (monthSalary as { currency?: string } | null)?.currency || empCurrency;
   const isOnline =
     (emp as { employee_type?: string } | null)?.employee_type === "online";
-  const officeGps = Boolean(emp?.gps_enabled) && !isOnline;
 
   return (
     <div className="space-y-5">
@@ -115,9 +112,6 @@ export default async function EmployeeHomePage() {
       </div>
 
       <BigLiveClock />
-
-      {isOnline ? <LiveLocationTracker mode="online" /> : null}
-      {officeGps ? <LiveLocationTracker mode="office" /> : null}
 
       <Link
         href="/employee/salary"
@@ -149,7 +143,7 @@ export default async function EmployeeHomePage() {
       <EmployeeHomeActions
         checkedIn={checkedIn}
         checkedOut={checkedOut}
-        gpsEnabled={Boolean(emp?.gps_enabled)}
+        gpsEnabled={Boolean(emp?.gps_enabled) && !isOnline}
         qrRequired={Boolean(company?.qr_required)}
         selfieRequired={Boolean(company?.selfie_required)}
       />
@@ -187,29 +181,6 @@ export default async function EmployeeHomePage() {
           <p className="mt-1 text-xl font-bold">{unread ?? 0}</p>
         </Link>
       </div>
-
-      {!isOnline ? (
-        <div className="space-y-2">
-          <div className="flex items-center justify-between">
-            <h2 className="font-semibold">{ckb.workplaceMap}</h2>
-            <Link href="/employee/map" className="text-sm text-brand-700">
-              گەورەتر
-            </Link>
-          </div>
-          <WorkplaceMap
-            enabled={Boolean(emp?.gps_enabled)}
-            lat={emp?.gps_lat ?? null}
-            lng={emp?.gps_lng ?? null}
-            radius={emp?.gps_radius_meters ?? 150}
-          />
-          {officeGps ? (
-            <p className="text-xs text-ink-muted">
-              تەنها لەناو بازنەی {emp?.gps_radius_meters ?? 150} مەتر دەتوانیت
-              هاتن یان چوون تۆمار بکەیت
-            </p>
-          ) : null}
-        </div>
-      ) : null}
 
       {(rewards ?? []).length > 0 && (
         <div className="space-y-2">

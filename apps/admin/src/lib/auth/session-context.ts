@@ -99,6 +99,16 @@ export const getEmployeeContext = cache(
       return null;
     }
 
+    const { data: emp } = await supabase
+      .from("employees")
+      .select("status")
+      .eq("user_id", user.id)
+      .maybeSingle();
+
+    if (!emp || emp.status !== "active") {
+      return null;
+    }
+
     return {
       userId: user.id,
       profile: {

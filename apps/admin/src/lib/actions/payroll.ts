@@ -262,11 +262,17 @@ export async function deletePayrollItemAction(
   });
 
   if (error) {
-    return { error: `سڕینەوە سەرنەکەوت: ${error.message || ""}` };
+    const msg = error.message || "";
+    if (msg.includes("already voided")) {
+      return { error: "ئەم غەرامەیە پێشتر هەڵوەشێنراوەتەوە." };
+    }
+    return { error: `هەڵوەشاندنەوە سەرنەکەوت: ${msg}` };
   }
 
   revalidatePayroll();
-  return { success: "بڕگە سڕایەوە و مووچە دووبارە ژمێردرایەوە." };
+  return {
+    success: "غەرامە/بڕگە هەڵوەشێنرایەوە و مووچە دووبارە ژمێردرایەوە.",
+  };
 }
 
 export async function upsertSalaryAction(

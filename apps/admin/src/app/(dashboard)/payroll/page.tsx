@@ -1,7 +1,10 @@
 import { AutoPayrollPanel } from "@/components/payroll/auto-payroll-panel";
 import { PayrollItemForm } from "@/components/payroll/payroll-item-form";
 import { AdvanceForm } from "@/components/payroll/advance-form";
-import { DeletePayrollItemButton } from "@/components/payroll/delete-payroll-item-button";
+import {
+  PayrollItemsBoard,
+  type PayrollItemRow,
+} from "@/components/payroll/payroll-items-board";
 import {
   PayrollSalaryBoard,
   type PayrollSalaryRow,
@@ -9,7 +12,6 @@ import {
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { ckb } from "@/lib/ckb";
-import { formatMoney } from "@/lib/money";
 
 export default async function PayrollPage() {
   const supabase = await createClient();
@@ -20,7 +22,7 @@ export default async function PayrollPage() {
   const [
     { data: employees },
     { data: salaries },
-    { data: rewards },
+    rewardsRes,
     { data: advances },
   ] = await Promise.all([
     supabase
@@ -39,10 +41,10 @@ export default async function PayrollPage() {
     supabase
       .from("rewards")
       .select(
-        "id, title, amount, reward_date, note, currency, kind, employees(full_name, employee_code)",
+        "id, title, amount, reward_date, note, currency, kind, voided_at, employees(full_name, employee_code)",
       )
       .order("reward_date", { ascending: false })
-      .limit(40),
+      .limit(80),
     supabase
       .from("salary_advances")
       .select(
@@ -51,6 +53,22 @@ export default async function PayrollPage() {
       .order("created_at", { ascending: false })
       .limit(40),
   ]);
+
+  let rewards: Array<Record<string, unknown>> | null = rewardsRes.data as
+    | Array<Record<string, unknown>>
+    | null;
+  let voidColumnReady = !rewardsRes.error;
+  if (rewardsRes.error) {
+    const fallback = await supabase
+      .from("rewards")
+      .select(
+        "id, title, amount, reward_date, note, currency, kind, employees(full_name, employee_code)",
+      )
+      .order("reward_date", { ascending: false })
+      .limit(80);
+    rewards = (fallback.data as Array<Record<string, unknown>> | null) || null;
+    voidColumnReady = false;
+  }
 
   const list = employees ?? [];
   const advanceRows = advances ?? [];
@@ -73,12 +91,35 @@ export default async function PayrollPage() {
       net_amount: Number(s.net_amount || 0),
       status: s.status,
       paid_at: s.paid_at,
-      receipt_number: (s as { receipt_number?: string | null }).receipt_number || null,
-      payment_method: (s as { payment_method?: string | null }).payment_method || null,
+      receipt_number:
+        (s as { receipt_number?: string | null }).receipt_number || null,
+      payment_method:
+        (s as { payment_method?: string | null }).payment_method || null,
       currency: (s as { currency?: string }).currency || "IQD",
       employee_name: emp?.full_name || "—",
       employee_code: emp?.employee_code || "",
       department_name: emp?.departments?.name || "",
+    };
+  });
+
+  const itemRows: PayrollItemRow[] = (rewards ?? []).map((r) => {
+    const emp = r.employees as {
+      full_name?: string;
+      employee_code?: string;
+    } | null;
+    return {
+      id: String(r.id),
+      title: String(r.title || ""),
+      amount: Number(r.amount || 0),
+      reward_date: String(r.reward_date || ""),
+      note: (r.note as string | null) || null,
+      currency: (r.currency as string) || "IQD",
+      kind: (r.kind as string) || "reward",
+      voided_at: voidColumnReady
+        ? ((r.voided_at as string | null) || null)
+        : null,
+      employee_name: emp?.full_name || "—",
+      employee_code: emp?.employee_code || "",
     };
   });
 
@@ -91,7 +132,7 @@ export default async function PayrollPage() {
         </p>
       </div>
 
-      <div className="print:hidden space-y-6">
+      <div className="space-y-6 print:hidden">
         <AutoPayrollPanel />
 
         <div className="grid gap-6 lg:grid-cols-2">
@@ -104,9 +145,7 @@ export default async function PayrollPage() {
 
       <PayrollSalaryBoard
         rows={salaryRows}
-        initialYear={
-          salaryRows[0]?.year || currentYear
-        }
+        initialYear={salaryRows[0]?.year || currentYear}
         initialMonth={
           salaryRows.find((r) => r.year === (salaryRows[0]?.year || currentYear))
             ?.month || currentMonth
@@ -115,7 +154,9 @@ export default async function PayrollPage() {
 
       <div className="space-y-3 print:hidden">
         <div className="flex flex-wrap items-center justify-between gap-2">
-          <h2 className="text-lg font-semibold">دوایین پاداشت / غەرامە</h2>
+          <h2 className="text-lg font-semibold">
+            پاداشت / غەرامە (هەڵوەشاندنەوە)
+          </h2>
           <Link
             href="/employees"
             className="text-sm font-medium text-brand-700 hover:underline"
@@ -123,71 +164,14 @@ export default async function PayrollPage() {
             مووچەی بنەڕەتی کارمەندان →
           </Link>
         </div>
-        {(rewards ?? []).length === 0 ? (
-          <div className="panel p-6 text-sm text-ink-muted">{ckb.noData}</div>
-        ) : (
-          <div className="grid gap-3 md:grid-cols-2">
-            {rewards!.map((r) => {
-              const emp = r.employees as {
-                full_name?: string;
-                employee_code?: string;
-              } | null;
-              const isFine = (r as { kind?: string }).kind === "fine";
-              return (
-                <div key={r.id} className="panel p-4">
-                  <div className="flex flex-wrap items-start justify-between gap-2">
-                    <div className="min-w-0 flex-1">
-                      <p className="font-semibold">
-                        {r.title}
-                        <span
-                          className={`mr-2 rounded-md px-1.5 py-0.5 text-[10px] font-medium ${
-                            isFine
-                              ? "bg-red-100 text-red-700"
-                              : "bg-emerald-100 text-emerald-800"
-                          }`}
-                        >
-                          {isFine ? "غەرامە" : "پاداشت"}
-                        </span>
-                      </p>
-                      <p className="text-xs text-ink-muted">
-                        {emp?.full_name} · {r.reward_date}
-                      </p>
-                      {(r as { note?: string | null }).note &&
-                      (r as { note?: string }).note !== "auto_late_fine" ? (
-                        <p className="mt-1 text-xs text-ink-muted">
-                          هۆکار: {(r as { note: string }).note}
-                        </p>
-                      ) : (r as { note?: string | null }).note ===
-                        "auto_late_fine" ? (
-                        <p className="mt-1 text-xs text-amber-700">
-                          هۆکار: غەرامەی خۆکاری دواکەوتن
-                        </p>
-                      ) : null}
-                    </div>
-                    <div className="text-left">
-                      <p
-                        className={`text-lg font-bold ${
-                          isFine ? "text-red-600" : "text-brand-700"
-                        }`}
-                        dir="ltr"
-                      >
-                        {isFine ? "−" : "+"}
-                        {formatMoney(
-                          Number(r.amount),
-                          (r as { currency?: string }).currency,
-                        )}
-                      </p>
-                      <DeletePayrollItemButton
-                        itemId={r.id}
-                        kind={isFine ? "fine" : "reward"}
-                      />
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
+        {!voidColumnReady ? (
+          <div className="rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+            بۆ هەڵوەشاندنەوەی هەمیشەیی غەرامە خۆکارەکان، فایلەکەی{" "}
+            <code dir="ltr">FIX_void_all_fines.sql</code> لە Supabase SQL Editor
+            جێبەجێ بکە.
           </div>
-        )}
+        ) : null}
+        <PayrollItemsBoard items={itemRows} />
       </div>
     </div>
   );

@@ -1,211 +1,228 @@
-/**
- * Standard journalism press-pass templates.
- * Oriented like real lanyard credentials (portrait), institutional typography,
- * clear photo + PRESS mark + org branding — not decorative gimmicks.
- */
 export type PressBadgeDesignId =
-  | "wire_service"
-  | "broadcast_pass"
-  | "ifj_style"
-  | "event_media"
-  | "photo_desk"
-  | "foreign_corr"
-  | "security_media"
-  | "editorial_card"
-  | "field_reporter"
-  | "network_credential";
+  | "ifj_standard"
+  | "national_union"
+  | "wire_agency"
+  | "broadcast_staff"
+  | "event_accreditation"
+  | "press_gallery"
+  | "photojournalist"
+  | "correspondent"
+  | "institution_pass"
+  | "checkpoint_media";
 
 export type PressBadgeLayout =
-  | "wire"
-  | "broadcast"
-  | "ifj"
-  | "event"
-  | "photo"
-  | "foreign"
-  | "security"
-  | "editorial"
-  | "field"
-  | "network";
+  | "classic_id"
+  | "agency_id"
+  | "accreditation"
+  | "gallery"
+  | "checkpoint";
 
 export type PressBadgeDesign = {
   id: PressBadgeDesignId;
-  nameCkb: string;
+  nameKu: string;
   nameEn: string;
   layout: PressBadgeLayout;
   /** Header / institutional band */
-  primary: string;
-  /** PRESS mark / emphasis */
-  accent: string;
-  surface: string;
   ink: string;
+  /** Card surface */
+  paper: string;
+  /** Body text */
+  text: string;
+  /** Muted labels */
   muted: string;
-  secondary?: string;
+  /** Thin rules / borders */
+  rule: string;
+  /** Official PRESS mark background */
+  pressMark: string;
+  pressMarkText: string;
 };
 
+export type PressBadgeData = {
+  designId: PressBadgeDesignId;
+  organization: string;
+  holderName: string;
+  title: string;
+  mediaOutlet: string;
+  badgeId: string;
+  validFrom: string;
+  validTo: string;
+  frontNote: string;
+  backNote: string;
+  emergencyPhone: string;
+  website: string;
+  photoDataUrl: string | null;
+  logoDataUrl: string | null;
+  customPrimary: string;
+  customAccent: string;
+  useCustomColors: boolean;
+};
+
+/**
+ * Ten institutional credential variants — same sober ID grammar,
+ * different issuing-body color systems used worldwide for press passes.
+ */
 export const PRESS_BADGE_DESIGNS: PressBadgeDesign[] = [
   {
-    id: "wire_service",
-    nameCkb: "باجی ئاژانس (Wire)",
-    nameEn: "Wire Service",
-    layout: "wire",
-    primary: "#1A1A1A",
-    accent: "#C41E3A",
-    surface: "#FFFFFF",
-    ink: "#111111",
-    muted: "#555555",
-    secondary: "#F3F3F3",
+    id: "ifj_standard",
+    nameKu: "کارتی نێودەوڵەتی",
+    nameEn: "International Press Credential",
+    layout: "classic_id",
+    ink: "#003087",
+    paper: "#ffffff",
+    text: "#111827",
+    muted: "#4b5563",
+    rule: "#94a3b8",
+    pressMark: "#b91c1c",
+    pressMarkText: "#ffffff",
   },
   {
-    id: "broadcast_pass",
-    nameCkb: "باجی پەخش",
-    nameEn: "Broadcast Pass",
-    layout: "broadcast",
-    primary: "#003366",
-    accent: "#FF6600",
-    surface: "#FFFFFF",
-    ink: "#0A1628",
-    muted: "#5A6A7A",
-    secondary: "#E8EEF5",
+    id: "national_union",
+    nameKu: "یەکێتیی ڕۆژنامەنووسان",
+    nameEn: "National Journalists Union",
+    layout: "classic_id",
+    ink: "#1e3a5f",
+    paper: "#f8fafc",
+    text: "#0f172a",
+    muted: "#475569",
+    rule: "#94a3b8",
+    pressMark: "#9f1239",
+    pressMarkText: "#ffffff",
   },
   {
-    id: "ifj_style",
-    nameCkb: "ستانداردی نێودەوڵەتی",
-    nameEn: "International Card",
-    layout: "ifj",
-    primary: "#003399",
-    accent: "#FFCC00",
-    surface: "#FFFFFF",
-    ink: "#001A4D",
-    muted: "#4A5568",
-    secondary: "#E6EEFF",
+    id: "wire_agency",
+    nameKu: "ئاژانسی هەواڵ",
+    nameEn: "Wire Agency Staff ID",
+    layout: "agency_id",
+    ink: "#111827",
+    paper: "#ffffff",
+    text: "#111827",
+    muted: "#6b7280",
+    rule: "#d1d5db",
+    pressMark: "#111827",
+    pressMarkText: "#ffffff",
   },
   {
-    id: "event_media",
-    nameCkb: "باجی ڕووداو / کۆنفرانس",
-    nameEn: "Event Media",
-    layout: "event",
-    primary: "#0D47A1",
-    accent: "#D32F2F",
-    surface: "#FAFAFA",
-    ink: "#212121",
-    muted: "#616161",
-    secondary: "#1565C0",
+    id: "broadcast_staff",
+    nameKu: "کارمەندی پەخش",
+    nameEn: "Broadcast Staff Pass",
+    layout: "agency_id",
+    ink: "#1e293b",
+    paper: "#ffffff",
+    text: "#0f172a",
+    muted: "#64748b",
+    rule: "#cbd5e1",
+    pressMark: "#0f766e",
+    pressMarkText: "#ffffff",
   },
   {
-    id: "photo_desk",
-    nameCkb: "باجی وێنەگر",
-    nameEn: "Photo Desk",
-    layout: "photo",
-    primary: "#212121",
-    accent: "#FFC107",
-    surface: "#FAFAFA",
-    ink: "#121212",
-    muted: "#666666",
-    secondary: "#424242",
+    id: "event_accreditation",
+    nameKu: "باجی ڕووداو",
+    nameEn: "Event Media Accreditation",
+    layout: "accreditation",
+    ink: "#0f172a",
+    paper: "#ffffff",
+    text: "#0f172a",
+    muted: "#64748b",
+    rule: "#94a3b8",
+    pressMark: "#c2410c",
+    pressMarkText: "#ffffff",
   },
   {
-    id: "foreign_corr",
-    nameCkb: "پەیامنێری دەرەوە",
-    nameEn: "Foreign Correspondent",
-    layout: "foreign",
-    primary: "#1B4D3E",
-    accent: "#C9A227",
-    surface: "#FFFEF8",
-    ink: "#1A2E28",
-    muted: "#5C6B64",
-    secondary: "#E8F0EC",
+    id: "press_gallery",
+    nameKu: "گالەریی پەرلەمان",
+    nameEn: "Press Gallery Credential",
+    layout: "gallery",
+    ink: "#3f1d0f",
+    paper: "#fffdf8",
+    text: "#1c1917",
+    muted: "#78716c",
+    rule: "#a8a29e",
+    pressMark: "#7f1d1d",
+    pressMarkText: "#ffffff",
   },
   {
-    id: "security_media",
-    nameCkb: "باجی ئاسایشی میدیا",
-    nameEn: "Security Media",
-    layout: "security",
-    primary: "#263238",
-    accent: "#00ACC1",
-    surface: "#ECEFF1",
-    ink: "#102027",
-    muted: "#546E7A",
-    secondary: "#37474F",
+    id: "photojournalist",
+    nameKu: "وێنەگری ڕۆژنامە",
+    nameEn: "Photojournalist Credential",
+    layout: "classic_id",
+    ink: "#292524",
+    paper: "#fafaf9",
+    text: "#1c1917",
+    muted: "#57534e",
+    rule: "#a8a29e",
+    pressMark: "#44403c",
+    pressMarkText: "#ffffff",
   },
   {
-    id: "editorial_card",
-    nameCkb: "کارتی سەرنووسەرایەتی",
-    nameEn: "Editorial Card",
-    layout: "editorial",
-    primary: "#3E2723",
-    accent: "#8D6E63",
-    surface: "#FFF8F0",
-    ink: "#2D1F1A",
-    muted: "#6D4C41",
-    secondary: "#EFEBE9",
+    id: "correspondent",
+    nameKu: "پەیامنێری مەیدان",
+    nameEn: "Field Correspondent",
+    layout: "agency_id",
+    ink: "#14532d",
+    paper: "#ffffff",
+    text: "#14532d",
+    muted: "#4b5563",
+    rule: "#86efac",
+    pressMark: "#166534",
+    pressMarkText: "#ffffff",
   },
   {
-    id: "field_reporter",
-    nameCkb: "ڕیپۆرتەری مەیدان",
-    nameEn: "Field Reporter",
-    layout: "field",
-    primary: "#B71C1C",
-    accent: "#FFFFFF",
-    surface: "#FFFFFF",
-    ink: "#1A1A1A",
-    muted: "#616161",
-    secondary: "#FFEBEE",
+    id: "institution_pass",
+    nameKu: "باجی دامەزراوە",
+    nameEn: "Institution Media Pass",
+    layout: "gallery",
+    ink: "#1e3a8a",
+    paper: "#ffffff",
+    text: "#1e293b",
+    muted: "#64748b",
+    rule: "#93c5fd",
+    pressMark: "#1d4ed8",
+    pressMarkText: "#ffffff",
   },
   {
-    id: "network_credential",
-    nameCkb: "ناسنامەی تۆڕی میدیا",
-    nameEn: "Network Credential",
-    layout: "network",
-    primary: "#0D1B2A",
-    accent: "#E0E1DD",
-    surface: "#F8F9FA",
-    ink: "#0D1B2A",
-    muted: "#415A77",
-    secondary: "#1B263B",
+    id: "checkpoint_media",
+    nameKu: "باجی چاودێری",
+    nameEn: "Checkpoint Media ID",
+    layout: "checkpoint",
+    ink: "#0c4a6e",
+    paper: "#ffffff",
+    text: "#0f172a",
+    muted: "#475569",
+    rule: "#64748b",
+    pressMark: "#b91c1c",
+    pressMarkText: "#ffffff",
   },
 ];
 
-export function getPressDesign(id: PressBadgeDesignId): PressBadgeDesign {
-  return (
-    PRESS_BADGE_DESIGNS.find((d) => d.id === id) || PRESS_BADGE_DESIGNS[0]!
-  );
-}
-
-export type PressBadgeData = {
-  fullName: string;
-  title: string;
-  organization: string;
-  badgeId: string;
-  issuedAt: string;
-  expiresAt: string;
-  phone: string;
-  email: string;
-  bloodType: string;
-  notes: string;
-  pressWord: string;
-  primaryOverride: string;
-  accentOverride: string;
-  logoDataUrl: string | null;
-  photoDataUrl: string | null;
-  designId: PressBadgeDesignId;
-};
-
 export const DEFAULT_PRESS_BADGE: PressBadgeData = {
-  fullName: "",
-  title: "ڕۆژنامەنووس",
+  designId: "ifj_standard",
   organization: "",
+  holderName: "",
+  title: "ڕۆژنامەنووس",
+  mediaOutlet: "",
   badgeId: "",
-  issuedAt: new Date().toISOString().slice(0, 10),
-  expiresAt: "",
-  phone: "",
-  email: "",
-  bloodType: "",
-  notes:
-    "This credential identifies the bearer as an accredited journalist. Valid only with photo ID.",
-  pressWord: "PRESS",
-  primaryOverride: "",
-  accentOverride: "",
-  logoDataUrl: null,
+  validFrom: "",
+  validTo: "",
+  frontNote: "Accredited working journalist",
+  backNote:
+    "This credential identifies the bearer as a working journalist. Please facilitate legitimate newsgathering in accordance with applicable law.",
+  emergencyPhone: "",
+  website: "",
   photoDataUrl: null,
-  designId: "wire_service",
+  logoDataUrl: null,
+  customPrimary: "#003087",
+  customAccent: "#b91c1c",
+  useCustomColors: false,
 };
+
+export function resolvePressBadgeColors(
+  design: PressBadgeDesign,
+  data: PressBadgeData,
+): PressBadgeDesign {
+  if (!data.useCustomColors) return design;
+  return {
+    ...design,
+    ink: data.customPrimary || design.ink,
+    pressMark: data.customAccent || design.pressMark,
+  };
+}

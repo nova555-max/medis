@@ -12,7 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Input, Label } from "@/components/ui/input";
 import { cn } from "@/lib/cn";
 
-const STORAGE_KEY = "mo_press_badge_draft_v3";
+const STORAGE_KEY = "mo_press_badge_draft_v4";
 
 function readFileAsDataUrl(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -46,7 +46,7 @@ export function PressBadgeStudio({
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
       if (!raw) return;
-      const parsed = JSON.parse(raw) as PressBadgeData;
+      const parsed = JSON.parse(raw) as Partial<PressBadgeData>;
       setData((prev) => ({
         ...prev,
         ...parsed,
@@ -66,7 +66,9 @@ export function PressBadgeStudio({
   }, [defaultLogoUrl]);
 
   const activeDesign = useMemo(
-    () => PRESS_BADGE_DESIGNS.find((d) => d.id === data.designId),
+    () =>
+      PRESS_BADGE_DESIGNS.find((d) => d.id === data.designId) ||
+      PRESS_BADGE_DESIGNS[0],
     [data.designId],
   );
 
@@ -97,15 +99,17 @@ export function PressBadgeStudio({
       <div className="print:hidden">
         <h1 className="text-2xl font-bold md:text-3xl">ناسنامەی ڕۆژنامەنووسی</h1>
         <p className="mt-1 text-sm text-ink-muted">
-          ١٠ باجی ستانداردی ڕۆژنامەنووسی (Wire، Broadcast، IFJ، Event…) · باری
-          درێژ · لۆگۆ و PRESS · پێشەوە/پشتەوە
+          ١٠ کارتی فەرمی دامەزراوەیی · فۆتۆ + خانەی زانیاری · نیشانی PRESS ·
+          پێشەوە/پشتەوە
         </p>
       </div>
 
-      <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_320px]">
+      <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_300px]">
         <div className="space-y-5 print:hidden">
           <section className="panel space-y-3 p-4">
-            <h2 className="font-semibold">١) جۆری باجی ستاندارد ({PRESS_BADGE_DESIGNS.length})</h2>
+            <h2 className="font-semibold">
+              ١) جۆری ناسنامە ({PRESS_BADGE_DESIGNS.length})
+            </h2>
             <div className="grid gap-2 sm:grid-cols-2">
               {PRESS_BADGE_DESIGNS.map((d) => {
                 const active = data.designId === d.id;
@@ -115,9 +119,8 @@ export function PressBadgeStudio({
                     type="button"
                     onClick={() =>
                       patch({
-                        designId: d.id,
-                        primaryOverride: "",
-                        accentOverride: "",
+                        designId: d.id as PressBadgeDesignId,
+                        useCustomColors: false,
                       })
                     }
                     className={cn(
@@ -127,11 +130,14 @@ export function PressBadgeStudio({
                         : "border-line hover:border-brand-300",
                     )}
                   >
-                    <div className="mb-2 flex h-10 overflow-hidden rounded-lg">
-                      <div className="w-1/2" style={{ background: d.primary }} />
-                      <div className="w-1/2" style={{ background: d.accent }} />
+                    <div className="mb-2 flex h-8 overflow-hidden rounded">
+                      <div className="w-2/3" style={{ background: d.ink }} />
+                      <div
+                        className="w-1/3"
+                        style={{ background: d.pressMark }}
+                      />
                     </div>
-                    <p className="text-sm font-semibold">{d.nameCkb}</p>
+                    <p className="text-sm font-semibold">{d.nameKu}</p>
                     <p className="text-[11px] text-ink-muted" dir="ltr">
                       {d.nameEn}
                     </p>
@@ -146,12 +152,12 @@ export function PressBadgeStudio({
             <div className="grid gap-3 sm:grid-cols-2">
               <Field label="ناوی تەواو">
                 <Input
-                  value={data.fullName}
-                  onChange={(e) => patch({ fullName: e.target.value })}
+                  value={data.holderName}
+                  onChange={(e) => patch({ holderName: e.target.value })}
                   placeholder="ناوی ڕۆژنامەنووس"
                 />
               </Field>
-              <Field label="پۆست / ناونیشان">
+              <Field label="پۆست / فەنکشن">
                 <Input
                   value={data.title}
                   onChange={(e) => patch({ title: e.target.value })}
@@ -163,6 +169,13 @@ export function PressBadgeStudio({
                   value={data.organization}
                   onChange={(e) => patch({ organization: e.target.value })}
                   placeholder={defaultOrganization || "میدیا ئۆفیس"}
+                />
+              </Field>
+              <Field label="دەرچوون / ئۆتڵێت">
+                <Input
+                  value={data.mediaOutlet}
+                  onChange={(e) => patch({ mediaOutlet: e.target.value })}
+                  placeholder="ناوی کەناڵ / ڕۆژنامە"
                 />
               </Field>
               <Field label="ژمارەی ناسنامە">
@@ -181,105 +194,93 @@ export function PressBadgeStudio({
                   </Button>
                 </div>
               </Field>
+              <Field label="ماڵپەڕ / پشتڕاستکردنەوە">
+                <Input
+                  value={data.website}
+                  onChange={(e) => patch({ website: e.target.value })}
+                  dir="ltr"
+                  placeholder="https://"
+                />
+              </Field>
               <Field label="بەرواری دەرکردن">
                 <Input
                   type="date"
-                  value={data.issuedAt}
-                  onChange={(e) => patch({ issuedAt: e.target.value })}
+                  value={data.validFrom}
+                  onChange={(e) => patch({ validFrom: e.target.value })}
                   dir="ltr"
                 />
               </Field>
               <Field label="بەسەردەچێت">
                 <Input
                   type="date"
-                  value={data.expiresAt}
-                  onChange={(e) => patch({ expiresAt: e.target.value })}
+                  value={data.validTo}
+                  onChange={(e) => patch({ validTo: e.target.value })}
                   dir="ltr"
                 />
               </Field>
-              <Field label="مۆبایل">
+              <Field label="تەلەفۆنی پەیوەندی">
                 <Input
-                  value={data.phone}
-                  onChange={(e) => patch({ phone: e.target.value })}
+                  value={data.emergencyPhone}
+                  onChange={(e) => patch({ emergencyPhone: e.target.value })}
                   dir="ltr"
                 />
               </Field>
-              <Field label="ئیمەیڵ">
+              <Field label="تێبینی پێشەوە (ئینگلیزی)">
                 <Input
-                  value={data.email}
-                  onChange={(e) => patch({ email: e.target.value })}
+                  value={data.frontNote}
+                  onChange={(e) => patch({ frontNote: e.target.value })}
                   dir="ltr"
-                  type="email"
-                />
-              </Field>
-              <Field label="جۆری خوێن (پشتەوە)">
-                <Input
-                  value={data.bloodType}
-                  onChange={(e) => patch({ bloodType: e.target.value })}
-                  dir="ltr"
-                  placeholder="O+"
-                />
-              </Field>
-              <Field label="وشەی PRESS لەسەر باجەکە">
-                <Input
-                  value={data.pressWord}
-                  onChange={(e) => patch({ pressWord: e.target.value })}
-                  dir="ltr"
-                  placeholder="PRESS"
+                  placeholder="Accredited working journalist"
                 />
               </Field>
             </div>
 
             <div>
-              <Label htmlFor="notes">تێبینی پشتەوە</Label>
+              <Label htmlFor="backNote">مەرجەکانی پشتەوە</Label>
               <textarea
-                id="notes"
-                value={data.notes}
-                onChange={(e) => patch({ notes: e.target.value })}
+                id="backNote"
+                value={data.backNote}
+                onChange={(e) => patch({ backNote: e.target.value })}
                 rows={3}
+                dir="ltr"
                 className="mt-1.5 w-full rounded-xl border border-line bg-surface-elevated px-3.5 py-2.5 text-sm"
               />
             </div>
 
-            <div className="grid gap-3 sm:grid-cols-2">
-              <Field label={`ڕەنگی سەرەکی${activeDesign ? ` (${activeDesign.nameCkb})` : ""}`}>
-                <div className="flex items-center gap-2">
-                  <input
-                    type="color"
-                    value={data.primaryOverride || activeDesign?.primary || "#1B3A5F"}
-                    onChange={(e) => patch({ primaryOverride: e.target.value })}
-                    className="h-10 w-14 cursor-pointer rounded border border-line bg-transparent"
-                  />
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    onClick={() => patch({ primaryOverride: "" })}
-                  >
-                    گەڕانەوە بۆ دیزاین
-                  </Button>
-                </div>
-              </Field>
-              <Field label="ڕەنگی accent / PRESS">
-                <div className="flex items-center gap-2">
-                  <input
-                    type="color"
-                    value={data.accentOverride || activeDesign?.accent || "#C9A227"}
-                    onChange={(e) => patch({ accentOverride: e.target.value })}
-                    className="h-10 w-14 cursor-pointer rounded border border-line bg-transparent"
-                  />
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    onClick={() => patch({ accentOverride: "" })}
-                  >
-                    گەڕانەوە بۆ دیزاین
-                  </Button>
-                </div>
-              </Field>
+            <div className="flex items-center gap-2">
+              <input
+                id="customColors"
+                type="checkbox"
+                checked={data.useCustomColors}
+                onChange={(e) => patch({ useCustomColors: e.target.checked })}
+                className="h-4 w-4"
+              />
+              <Label htmlFor="customColors">ڕەنگی تایبەت (لە جیاتی دیزاین)</Label>
             </div>
 
+            {data.useCustomColors ? (
+              <div className="grid gap-3 sm:grid-cols-2">
+                <Field label="ڕەنگی سەرپەڕە / دەزگا">
+                  <input
+                    type="color"
+                    value={data.customPrimary}
+                    onChange={(e) => patch({ customPrimary: e.target.value })}
+                    className="h-10 w-14 cursor-pointer rounded border border-line bg-transparent"
+                  />
+                </Field>
+                <Field label="ڕەنگی نیشانی PRESS">
+                  <input
+                    type="color"
+                    value={data.customAccent}
+                    onChange={(e) => patch({ customAccent: e.target.value })}
+                    className="h-10 w-14 cursor-pointer rounded border border-line bg-transparent"
+                  />
+                </Field>
+              </div>
+            ) : null}
+
             <div className="grid gap-3 sm:grid-cols-2">
-              <Field label="لۆگۆی ئەدمین (لەسەر باجەکە)">
+              <Field label="لۆگۆی دەزگا">
                 <input
                   type="file"
                   accept="image/*"
@@ -318,7 +319,7 @@ export function PressBadgeStudio({
         </div>
 
         <div className="space-y-4 xl:sticky xl:top-20 xl:self-start">
-          <div className="print:hidden flex flex-wrap items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2 print:hidden">
             <Button
               type="button"
               variant={side === "front" ? "primary" : "secondary"}
@@ -341,30 +342,42 @@ export function PressBadgeStudio({
             </Button>
           </div>
           {savedHint ? (
-            <p className="print:hidden text-sm text-emerald-700">{savedHint}</p>
+            <p className="text-sm text-emerald-700 print:hidden">{savedHint}</p>
           ) : null}
 
-          <div className="print:hidden flex justify-center rounded-2xl border border-line bg-surface-muted/40 p-5">
-            <PressBadgeCard data={data} side={side} />
+          <div className="flex justify-center rounded-2xl border border-line bg-surface-muted/40 p-5 print:hidden">
+            <div className="w-[220px]">
+              <PressBadgeCard
+                design={activeDesign}
+                data={data}
+                side={side}
+              />
+            </div>
           </div>
 
-          {/* Print sheet: both sides — always in DOM for print CSS visibility */}
           <div className="press-badge-print-sheet hidden print:block">
             <div className="press-badge-print-page">
               <p className="mb-2 text-center text-xs text-black/60">پێشەوە</p>
-              <PressBadgeCard data={data} side="front" className="mx-auto" />
+              <PressBadgeCard
+                design={activeDesign}
+                data={data}
+                side="front"
+                className="mx-auto max-w-[54mm]"
+              />
             </div>
             <div className="press-badge-print-page">
               <p className="mb-2 text-center text-xs text-black/60">پشتەوە</p>
-              <PressBadgeCard data={data} side="back" className="mx-auto" />
+              <PressBadgeCard
+                design={activeDesign}
+                data={data}
+                side="back"
+                className="mx-auto max-w-[54mm]"
+              />
             </div>
           </div>
 
-          <p className="print:hidden text-center text-xs text-ink-muted">
-            دیزاینی ئێستا: {activeDesign?.nameCkb} · وشەی{" "}
-            <span dir="ltr" className="font-semibold">
-              {(data.pressWord || "PRESS").toUpperCase()}
-            </span>
+          <p className="text-center text-xs text-ink-muted print:hidden" dir="ltr">
+            {activeDesign.nameEn}
           </p>
         </div>
       </div>
@@ -387,5 +400,4 @@ function Field({
   );
 }
 
-// keep type import used for design id casting if needed later
 export type { PressBadgeDesignId };

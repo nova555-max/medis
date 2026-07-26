@@ -621,8 +621,8 @@ body {
   }
 
   .press-badge {
-    width: 63mm !important;
-    max-width: 63mm !important;
+    width: 54mm !important;
+    max-width: 54mm !important;
     height: auto !important;
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;

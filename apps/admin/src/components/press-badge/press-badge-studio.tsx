@@ -12,7 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Input, Label } from "@/components/ui/input";
 import { cn } from "@/lib/cn";
 
-const STORAGE_KEY = "mo_press_badge_draft_v2";
+const STORAGE_KEY = "mo_press_badge_draft_v3";
 
 function readFileAsDataUrl(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -97,15 +97,15 @@ export function PressBadgeStudio({
       <div className="print:hidden">
         <h1 className="text-2xl font-bold md:text-3xl">ناسنامەی ڕۆژنامەنووسی</h1>
         <p className="mt-1 text-sm text-ink-muted">
-          ١٠ دیزاین · دوو لایە (پێشەوە / پشتەوە) · لۆگۆ و ڕەنگی خۆت · وشەی PRESS بە
-          شێوازی جوان
+          ١٠ باجی ستانداردی ڕۆژنامەنووسی (Wire، Broadcast، IFJ، Event…) · باری
+          درێژ · لۆگۆ و PRESS · پێشەوە/پشتەوە
         </p>
       </div>
 
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_320px]">
         <div className="space-y-5 print:hidden">
           <section className="panel space-y-3 p-4">
-            <h2 className="font-semibold">١) هەڵبژاردنی دیزاین ({PRESS_BADGE_DESIGNS.length})</h2>
+            <h2 className="font-semibold">١) جۆری باجی ستاندارد ({PRESS_BADGE_DESIGNS.length})</h2>
             <div className="grid gap-2 sm:grid-cols-2">
               {PRESS_BADGE_DESIGNS.map((d) => {
                 const active = data.designId === d.id;

@@ -22,7 +22,7 @@ export default async function EmployeeDetailPage({
   const { data: employee } = await supabase
     .from("employees")
     .select(
-      "id, full_name, employee_code, email, phone, status, company_id, department_id, shift_id, employee_type, gps_enabled, gps_lat, gps_lng, gps_radius_meters, last_lat, last_lng, last_location_at, last_activity, base_salary, currency, bound_device_id, bound_device_label, bound_device_at, pending_device_id, pending_device_label, pending_device_at",
+      "id, full_name, employee_code, email, phone, hire_date, notes, status, company_id, department_id, position_id, shift_id, employee_type, gps_enabled, gps_lat, gps_lng, gps_radius_meters, last_lat, last_lng, last_location_at, last_activity, base_salary, currency, bound_device_id, bound_device_label, bound_device_at, pending_device_id, pending_device_label, pending_device_at",
     )
     .eq("id", id)
     .maybeSingle();
@@ -47,6 +47,7 @@ export default async function EmployeeDetailPage({
     { data: leaveTypes },
     { data: shifts },
     { data: departments },
+    { data: positions },
   ] = await Promise.all([
     supabase
       .from("employee_documents")
@@ -74,6 +75,12 @@ export default async function EmployeeDetailPage({
       .order("name"),
     supabase
       .from("departments")
+      .select("id, name")
+      .eq("company_id", employee.company_id)
+      .eq("is_active", true)
+      .order("name"),
+    supabase
+      .from("positions")
       .select("id, name")
       .eq("company_id", employee.company_id)
       .eq("is_active", true)
@@ -122,8 +129,14 @@ export default async function EmployeeDetailPage({
           id: employee.id,
           full_name: employee.full_name,
           employee_code: employee.employee_code,
+          email: employee.email,
           phone: employee.phone,
+          hire_date:
+            (employee as { hire_date?: string | null }).hire_date || null,
+          notes: (employee as { notes?: string | null }).notes || null,
           department_id: employee.department_id,
+          position_id:
+            (employee as { position_id?: string | null }).position_id || null,
           base_salary: baseSalary,
           currency,
           employee_type:
@@ -150,6 +163,7 @@ export default async function EmployeeDetailPage({
               .pending_device_at || null,
         }}
         departments={departments ?? []}
+        positions={positions ?? []}
       />
 
       <EmployeeAdminAccessPanel

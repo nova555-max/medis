@@ -1,208 +1,128 @@
 import { AutoPayrollPanel } from "@/components/payroll/auto-payroll-panel";
 import { PayrollItemForm } from "@/components/payroll/payroll-item-form";
-import { MarkPaidButton } from "@/components/payroll/mark-paid-button";
-import { DeletePayrollItemButton } from "@/components/payroll/delete-payroll-item-button";
 import { AdvanceForm } from "@/components/payroll/advance-form";
+import { DeletePayrollItemButton } from "@/components/payroll/delete-payroll-item-button";
+import {
+  PayrollSalaryBoard,
+  type PayrollSalaryRow,
+} from "@/components/payroll/payroll-salary-board";
 import Link from "next/link";
-import { FileText, Printer, Download } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { ckb } from "@/lib/ckb";
 import { formatMoney } from "@/lib/money";
 
-function statusLabel(status: string) {
-  if (status === "paid") return "پارەدراو";
-  if (status === "approved") return "پەسەندکراو";
-  if (status === "draft") return "ڕەشنووس";
-  return status;
-}
-
 export default async function PayrollPage() {
   const supabase = await createClient();
+  const now = new Date();
+  const currentYear = now.getFullYear();
+  const currentMonth = now.getMonth() + 1;
 
-  const [{ data: employees }, { data: salaries }, { data: rewards }, { data: advances }] =
-    await Promise.all([
-      supabase
-        .from("employees")
-        .select("id, full_name, employee_code, base_salary, currency")
-        .eq("status", "active")
-        .order("full_name"),
-      supabase
-        .from("salaries")
-        .select(
-          "id, year, month, base_amount, allowances, deductions, overtime_amount, bonus_amount, net_amount, status, paid_at, receipt_number, payment_method, currency, employees(full_name, employee_code)",
-        )
-        .order("year", { ascending: false })
-        .order("month", { ascending: false })
-        .limit(60),
-      supabase
-        .from("rewards")
-        .select(
-          "id, title, amount, reward_date, note, currency, kind, employees(full_name, employee_code)",
-        )
-        .order("reward_date", { ascending: false })
-        .limit(40),
-      supabase
-        .from("salary_advances")
-        .select(
-          "id, amount, remaining, installment_amount, currency, note, status, created_at, employees(full_name, employee_code)",
-        )
-        .order("created_at", { ascending: false })
-        .limit(40),
-    ]);
+  const [
+    { data: employees },
+    { data: salaries },
+    { data: rewards },
+    { data: advances },
+  ] = await Promise.all([
+    supabase
+      .from("employees")
+      .select("id, full_name, employee_code, base_salary, currency")
+      .eq("status", "active")
+      .order("full_name"),
+    supabase
+      .from("salaries")
+      .select(
+        "id, year, month, base_amount, allowances, deductions, overtime_amount, bonus_amount, net_amount, status, paid_at, receipt_number, payment_method, currency, employees(full_name, employee_code, departments(name))",
+      )
+      .order("year", { ascending: false })
+      .order("month", { ascending: false })
+      .limit(800),
+    supabase
+      .from("rewards")
+      .select(
+        "id, title, amount, reward_date, note, currency, kind, employees(full_name, employee_code)",
+      )
+      .order("reward_date", { ascending: false })
+      .limit(40),
+    supabase
+      .from("salary_advances")
+      .select(
+        "id, amount, remaining, installment_amount, currency, note, status, created_at, employees(full_name, employee_code)",
+      )
+      .order("created_at", { ascending: false })
+      .limit(40),
+  ]);
 
   const list = employees ?? [];
-  const salaryRows = salaries ?? [];
   const advanceRows = advances ?? [];
+
+  const salaryRows: PayrollSalaryRow[] = (salaries ?? []).map((s) => {
+    const emp = s.employees as {
+      full_name?: string;
+      employee_code?: string;
+      departments?: { name?: string } | null;
+    } | null;
+    return {
+      id: s.id,
+      year: s.year,
+      month: s.month,
+      base_amount: Number(s.base_amount || 0),
+      allowances: Number(s.allowances || 0),
+      deductions: Number(s.deductions || 0),
+      overtime_amount: Number(s.overtime_amount || 0),
+      bonus_amount: Number(s.bonus_amount || 0),
+      net_amount: Number(s.net_amount || 0),
+      status: s.status,
+      paid_at: s.paid_at,
+      receipt_number: (s as { receipt_number?: string | null }).receipt_number || null,
+      payment_method: (s as { payment_method?: string | null }).payment_method || null,
+      currency: (s as { currency?: string }).currency || "IQD",
+      employee_name: emp?.full_name || "—",
+      employee_code: emp?.employee_code || "",
+      department_name: emp?.departments?.name || "",
+    };
+  });
 
   return (
     <div className="space-y-6">
-      <div>
+      <div className="print:hidden">
         <h1 className="text-2xl font-bold md:text-3xl">{ckb.payroll}</h1>
         <p className="mt-1 text-sm text-ink-muted">
-          سیستەم خۆکار: مووچە + پاداشت − غەرامە = کۆی خاوێن
+          سیستەم خۆکار: مووچە + پاداشت − غەرامە = کۆی خاوێن · ئێکسڵ و چاپ
         </p>
       </div>
 
-      <AutoPayrollPanel />
+      <div className="print:hidden space-y-6">
+        <AutoPayrollPanel />
 
-      <div className="grid gap-6 lg:grid-cols-2">
-        <PayrollItemForm employees={list} kind="reward" />
-        <PayrollItemForm employees={list} kind="fine" />
-      </div>
-
-      <AdvanceForm employees={list} advances={advanceRows as never} />
-
-      <section className="panel space-y-4 p-5">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div className="flex items-center gap-3">
-            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-brand-600 text-white">
-              <FileText className="h-5 w-5" />
-            </div>
-            <div>
-              <h2 className="text-lg font-semibold">مووچە و وەسڵ</h2>
-              <p className="text-sm text-ink-muted">
-                ٢ کارمەند لە یەک A4 — کەمکردنەوەی کاغەز
-              </p>
-            </div>
-          </div>
-          <div className="flex flex-wrap items-center gap-2">
-            {(() => {
-              const now = new Date();
-              const y = now.getFullYear();
-              const m = now.getMonth() + 1;
-              const latest = salaryRows[0];
-              const py = latest?.year || y;
-              const pm = latest?.month || m;
-              return (
-                <Link
-                  href={`/payroll/receipts/print?year=${py}&month=${pm}`}
-                  className="inline-flex items-center gap-1.5 rounded-xl bg-brand-600 px-4 py-2.5 text-sm font-medium text-white"
-                >
-                  <Printer className="h-4 w-4" />
-                  چاپکردنی هەموو وەسڵەکان ({pm}/{py})
-                </Link>
-              );
-            })()}
-            <Link
-              href="/employees"
-              className="text-sm font-medium text-brand-700 hover:underline"
-            >
-              مووچەی بنەڕەتی →
-            </Link>
-          </div>
+        <div className="grid gap-6 lg:grid-cols-2">
+          <PayrollItemForm employees={list} kind="reward" />
+          <PayrollItemForm employees={list} kind="fine" />
         </div>
 
-        {salaryRows.length === 0 ? (
-          <div className="rounded-xl border border-dashed border-line bg-surface-muted/40 px-4 py-8 text-center text-sm text-ink-muted">
-            هێشتا مووچە دروست نەبووە. سەرەتا مووچەی بنەڕەتی لە کارمەند دابنێ، پاشان
-            «دروستکردنی مووچەی مانگ خۆکار» دابگرە.
-          </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[980px] text-sm">
-              <thead className="border-b border-line bg-surface-muted/60">
-                <tr>
-                  <th className="px-3 py-3 text-right">کارمەند</th>
-                  <th className="px-3 py-3 text-right">مانگ</th>
-                  <th className="px-3 py-3 text-right">بنەڕەت</th>
-                  <th className="px-3 py-3 text-right">پاداشت</th>
-                  <th className="px-3 py-3 text-right">غەرامە</th>
-                  <th className="px-3 py-3 text-right">کۆی خاوێن</th>
-                  <th className="px-3 py-3 text-right">دۆخ</th>
-                  <th className="px-3 py-3 text-left">کردار</th>
-                </tr>
-              </thead>
-              <tbody>
-                {salaryRows.map((s) => {
-                  const emp = s.employees as {
-                    full_name?: string;
-                    employee_code?: string;
-                  } | null;
-                  const cur = (s as { currency?: string }).currency || "IQD";
-                  const bonus =
-                    Number(s.bonus_amount || 0) || Number(s.allowances || 0);
-                  return (
-                    <tr
-                      key={s.id}
-                      className="border-b border-line last:border-0"
-                    >
-                      <td className="px-3 py-3">
-                        <p className="font-medium">{emp?.full_name}</p>
-                        <p className="text-xs text-ink-muted" dir="ltr">
-                          {emp?.employee_code}
-                        </p>
-                      </td>
-                      <td className="px-3 py-3" dir="ltr">
-                        {s.month}/{s.year}
-                      </td>
-                      <td className="px-3 py-3" dir="ltr">
-                        {formatMoney(Number(s.base_amount), cur)}
-                      </td>
-                      <td className="px-3 py-3 text-emerald-700" dir="ltr">
-                        {formatMoney(bonus, cur)}
-                      </td>
-                      <td className="px-3 py-3 text-red-600" dir="ltr">
-                        {formatMoney(Number(s.deductions), cur)}
-                      </td>
-                      <td
-                        className="px-3 py-3 font-bold text-brand-700"
-                        dir="ltr"
-                      >
-                        {formatMoney(Number(s.net_amount), cur)}
-                      </td>
-                      <td className="px-3 py-3">{statusLabel(s.status)}</td>
-                      <td className="px-3 py-3">
-                        <div className="flex flex-wrap items-center gap-2">
-                          {s.status !== "paid" && (
-                            <MarkPaidButton salaryId={s.id} />
-                          )}
-                          <Link
-                            href={`/payroll/receipt/${s.id}`}
-                            className="inline-flex items-center gap-1.5 rounded-xl bg-brand-600 px-3 py-2 text-xs font-medium text-white"
-                          >
-                            <Printer className="h-3.5 w-3.5" />
-                            وەسڵ
-                          </Link>
-                          <Link
-                            href={`/api/payroll/receipt/${s.id}`}
-                            className="inline-flex items-center gap-1.5 rounded-xl border border-line bg-surface-elevated px-3 py-2 text-xs font-medium"
-                          >
-                            <Download className="h-3.5 w-3.5" />
-                            PDF
-                          </Link>
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </section>
+        <AdvanceForm employees={list} advances={advanceRows as never} />
+      </div>
 
-      <div className="space-y-3">
-        <h2 className="text-lg font-semibold">دوایین پاداشت / غەرامە</h2>
+      <PayrollSalaryBoard
+        rows={salaryRows}
+        initialYear={
+          salaryRows[0]?.year || currentYear
+        }
+        initialMonth={
+          salaryRows.find((r) => r.year === (salaryRows[0]?.year || currentYear))
+            ?.month || currentMonth
+        }
+      />
+
+      <div className="space-y-3 print:hidden">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <h2 className="text-lg font-semibold">دوایین پاداشت / غەرامە</h2>
+          <Link
+            href="/employees"
+            className="text-sm font-medium text-brand-700 hover:underline"
+          >
+            مووچەی بنەڕەتی کارمەندان →
+          </Link>
+        </div>
         {(rewards ?? []).length === 0 ? (
           <div className="panel p-6 text-sm text-ink-muted">{ckb.noData}</div>
         ) : (

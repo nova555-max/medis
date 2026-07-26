@@ -36,8 +36,13 @@ export async function updateEmployeeProfileAction(
 
   const employeeId = String(formData.get("employeeId") || "").trim();
   const fullName = String(formData.get("fullName") || "").trim();
+  const employeeCode = String(formData.get("employeeCode") || "").trim();
   const phone = String(formData.get("phone") || "").trim();
+  const email = String(formData.get("email") || "").trim().toLowerCase();
+  const hireDate = String(formData.get("hireDate") || "").trim();
+  const notes = String(formData.get("notes") || "").trim();
   const departmentId = String(formData.get("departmentId") || "").trim();
+  const positionId = String(formData.get("positionId") || "").trim();
   const baseSalary = Number(formData.get("baseSalary") || 0);
   const currencyRaw = String(formData.get("currency") || "IQD");
   const currency = currencyRaw === "USD" ? "USD" : "IQD";
@@ -46,21 +51,44 @@ export async function updateEmployeeProfileAction(
 
   if (!employeeId) return { error: "کارمەند نەدۆزرایەوە." };
   if (!fullName || fullName.length < 2) return { error: "ناو پێویستە." };
+  if (!employeeCode) return { error: "کۆدی کارمەند پێویستە." };
+  if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    return { error: "ئیمەیڵ نادروستە." };
+  }
+  if (hireDate && !/^\d{4}-\d{2}-\d{2}$/.test(hireDate)) {
+    return { error: "بەرواری دامەزراندن نادروستە." };
+  }
   if (baseSalary < 0) return { error: "مووچە نادروستە." };
 
   const { data: emp, error: findErr } = await ctx.supabase
     .from("employees")
-    .select("id, user_id")
+    .select("id, user_id, employee_code")
     .eq("id", employeeId)
     .eq("company_id", ctx.profile.company_id)
     .maybeSingle();
 
   if (findErr || !emp) return { error: "کارمەند نەدۆزرایەوە." };
 
+  if (employeeCode !== emp.employee_code) {
+    const { data: clash } = await ctx.supabase
+      .from("employees")
+      .select("id")
+      .eq("company_id", ctx.profile.company_id)
+      .eq("employee_code", employeeCode)
+      .neq("id", employeeId)
+      .maybeSingle();
+    if (clash) return { error: "ئەم کۆدە پێشتر بەکارهاتووە." };
+  }
+
   const updatePayload: Record<string, unknown> = {
     full_name: fullName,
+    employee_code: employeeCode,
     phone: phone || null,
+    email: email || null,
+    hire_date: hireDate || null,
+    notes: notes || null,
     department_id: departmentId || null,
+    position_id: positionId || null,
     base_salary: baseSalary,
     currency,
     employee_type: employeeType,
@@ -81,7 +109,11 @@ export async function updateEmployeeProfileAction(
   if (emp.user_id) {
     await ctx.supabase
       .from("profiles")
-      .update({ full_name: fullName, phone: phone || null })
+      .update({
+        full_name: fullName,
+        phone: phone || null,
+        email: email || null,
+      })
       .eq("id", emp.user_id);
   }
 

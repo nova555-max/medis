@@ -4,123 +4,203 @@ import type { PressBadgeData, PressBadgeDesign } from "./press-badge-designs";
 import { getPressDesign } from "./press-badge-designs";
 import { cn } from "@/lib/cn";
 
-function patternStyle(kind: PressBadgeDesign["frontPattern"], ink: string) {
-  if (kind === "none") return undefined;
-  if (kind === "dots") {
-    return {
-      backgroundImage: `radial-gradient(${ink}22 1px, transparent 1px)`,
-      backgroundSize: "10px 10px",
-    } as const;
-  }
-  if (kind === "lines") {
-    return {
-      backgroundImage: `repeating-linear-gradient(-12deg, ${ink}10 0 1px, transparent 1px 9px)`,
-    } as const;
-  }
-  if (kind === "grid") {
-    return {
-      backgroundImage: `linear-gradient(${ink}12 1px, transparent 1px), linear-gradient(90deg, ${ink}12 1px, transparent 1px)`,
-      backgroundSize: "14px 14px",
-    } as const;
-  }
-  return {
-    backgroundImage: `repeating-linear-gradient(45deg, ${ink}0D 0 8px, transparent 8px 16px)`,
-  } as const;
-}
+/** Tall press pass — portrait credential */
+const BADGE_SHELL =
+  "press-badge relative flex aspect-[63/100] w-full max-w-[280px] flex-col overflow-hidden shadow-[0_18px_40px_-20px_rgba(0,0,0,0.45)]";
 
-function radiusClass(r: PressBadgeDesign["radius"]) {
-  if (r === "sharp") return "rounded-md";
-  if (r === "pill") return "rounded-[1.35rem]";
-  return "rounded-2xl";
-}
-
-function PressMark({
+function PressWord({
   word,
-  design,
   accent,
   primary,
+  variant,
 }: {
   word: string;
-  design: PressBadgeDesign;
   accent: string;
   primary: string;
+  variant: "solid" | "outline" | "neon" | "stamp" | "serif";
 }) {
   const text = (word || "PRESS").toUpperCase();
 
-  if (design.pressStyle === "stamp") {
+  if (variant === "outline") {
+    return (
+      <p
+        className="text-center text-[2.1rem] font-black tracking-[0.32em]"
+        style={{ color: "transparent", WebkitTextStroke: `2.5px ${accent}` }}
+      >
+        {text}
+      </p>
+    );
+  }
+  if (variant === "neon") {
+    return (
+      <p
+        className="text-center text-[1.85rem] font-black tracking-[0.38em]"
+        style={{
+          color: accent,
+          textShadow: `0 0 8px ${accent}, 0 0 18px ${accent}88`,
+        }}
+      >
+        {text}
+      </p>
+    );
+  }
+  if (variant === "stamp") {
     return (
       <div
-        className="inline-flex rotate-[-8deg] items-center justify-center border-[3px] px-3 py-1 text-[1.35rem] font-black tracking-[0.35em]"
+        className="mx-auto inline-flex rotate-[-7deg] items-center justify-center border-[3px] px-4 py-1.5 text-[1.4rem] font-black tracking-[0.28em]"
         style={{ borderColor: accent, color: accent }}
       >
         {text}
       </div>
     );
   }
-
-  if (design.pressStyle === "outline") {
+  if (variant === "serif") {
     return (
       <p
-        className="text-[2rem] font-black uppercase tracking-[0.28em]"
-        style={{
-          color: "transparent",
-          WebkitTextStroke: `2px ${accent}`,
-        }}
+        className="text-center font-serif text-[2.4rem] font-black tracking-[0.12em]"
+        style={{ color: primary }}
       >
         {text}
       </p>
     );
   }
-
-  if (design.pressStyle === "ribbon") {
-    return (
-      <div
-        className="relative inline-flex items-center px-5 py-1.5 text-sm font-black tracking-[0.4em] text-white"
-        style={{ background: accent, color: primary }}
-      >
-        <span
-          className="absolute -left-2 top-0 h-full w-2"
-          style={{
-            background: accent,
-            clipPath: "polygon(100% 0, 0 50%, 100% 100%)",
-          }}
-        />
-        {text}
-        <span
-          className="absolute -right-2 top-0 h-full w-2"
-          style={{
-            background: accent,
-            clipPath: "polygon(0 0, 100% 50%, 0 100%)",
-          }}
-        />
-      </div>
-    );
-  }
-
-  if (design.pressStyle === "vertical") {
-    return (
-      <p
-        className="text-[0.7rem] font-black uppercase tracking-[0.55em]"
-        style={{
-          color: accent,
-          writingMode: "vertical-rl",
-          transform: "rotate(180deg)",
-        }}
-      >
-        {text}
-      </p>
-    );
-  }
-
-  // banner
   return (
     <div
-      className="inline-flex items-center gap-2 rounded-sm px-3 py-1 text-[0.95rem] font-black tracking-[0.42em] text-white shadow-sm"
-      style={{ background: `linear-gradient(90deg, ${accent}, ${primary})` }}
+      className="mx-auto inline-flex items-center gap-2 rounded-full px-5 py-1.5 text-sm font-black tracking-[0.42em] text-white"
+      style={{ background: `linear-gradient(90deg, ${primary}, ${accent})` }}
     >
-      <span className="h-1.5 w-1.5 rounded-full bg-white/90" />
       {text}
     </div>
+  );
+}
+
+function LogoBlock({
+  src,
+  primary,
+  accent,
+  light,
+}: {
+  src: string | null;
+  primary: string;
+  accent: string;
+  light?: boolean;
+}) {
+  if (src) {
+    return (
+      // eslint-disable-next-line @next/next/no-img-element
+      <img
+        src={src}
+        alt=""
+        className={cn(
+          "h-11 w-11 rounded-xl object-contain p-1",
+          light ? "bg-white/95" : "bg-white",
+        )}
+      />
+    );
+  }
+  return (
+    <div
+      className="flex h-11 w-11 items-center justify-center rounded-xl text-base font-black"
+      style={{ background: accent, color: primary }}
+    >
+      م
+    </div>
+  );
+}
+
+function Photo({
+  src,
+  className,
+  muted,
+}: {
+  src: string | null;
+  className?: string;
+  muted: string;
+}) {
+  return (
+    <div className={cn("overflow-hidden bg-black/5", className)}>
+      {src ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src={src} alt="" className="h-full w-full object-cover" />
+      ) : (
+        <div
+          className="flex h-full w-full items-center justify-center text-xs"
+          style={{ color: muted }}
+        >
+          وێنە
+        </div>
+      )}
+    </div>
+  );
+}
+
+function useTheme(data: PressBadgeData) {
+  const base = getPressDesign(data.designId);
+  return {
+    ...base,
+    primary: data.primaryOverride || base.primary,
+    accent: data.accentOverride || base.accent,
+  };
+}
+
+function BackCommon({
+  data,
+  design,
+  className,
+  children,
+}: {
+  data: PressBadgeData;
+  design: PressBadgeDesign;
+  className?: string;
+  children?: React.ReactNode;
+}) {
+  return (
+    <article
+      className={cn(BADGE_SHELL, "rounded-[1.35rem]", className)}
+      style={{ background: design.surface, color: design.ink }}
+      dir="rtl"
+    >
+      {children}
+      <div
+        className="relative flex items-center gap-3 px-4 py-3 text-white"
+        style={{ background: design.primary }}
+      >
+        <LogoBlock
+          src={data.logoDataUrl}
+          primary={design.primary}
+          accent={design.accent}
+          light
+        />
+        <div className="min-w-0 flex-1">
+          <p className="truncate text-sm font-bold">
+            {data.organization || "میدیا ئۆفیس"}
+          </p>
+          <p className="text-[10px] opacity-80">ناسنامەی ڕۆژنامەنووسی · پشتەوە</p>
+        </div>
+      </div>
+      <div className="relative flex flex-1 flex-col gap-2.5 px-4 py-4 text-[11px]">
+        <PressWord
+          word={data.pressWord}
+          accent={design.accent}
+          primary={design.primary}
+          variant="outline"
+        />
+        <div className="mt-1 grid grid-cols-2 gap-2.5">
+          <Info label="ئایدی" value={data.badgeId || "—"} dir="ltr" />
+          <Info label="دەرکردن" value={data.issuedAt || "—"} dir="ltr" />
+          <Info label="بەسەردەچێت" value={data.expiresAt || "—"} dir="ltr" />
+          <Info label="خوێن" value={data.bloodType || "—"} dir="ltr" />
+          <Info label="مۆبایل" value={data.phone || "—"} dir="ltr" />
+          <Info label="ئیمەیڵ" value={data.email || "—"} dir="ltr" />
+        </div>
+        <div
+          className="mt-auto rounded-2xl border px-3 py-2.5 text-[10px] leading-relaxed"
+          style={{ borderColor: `${design.primary}28`, color: design.muted }}
+        >
+          {data.notes || "ئەم ناسنامەیە تەنها بۆ مەبەستی ڕۆژنامەنووسی بەکاردێت."}
+        </div>
+      </div>
+    </article>
   );
 }
 
@@ -133,204 +213,648 @@ export function PressBadgeCard({
   side: "front" | "back";
   className?: string;
 }) {
-  const base = getPressDesign(data.designId);
-  const primary = data.primaryOverride || base.primary;
-  const accent = data.accentOverride || base.accent;
-  const design = { ...base, primary, accent };
+  const design = useTheme(data);
 
   if (side === "back") {
-    return (
-      <article
-        className={cn(
-          "press-badge relative flex aspect-[85.6/54] w-full max-w-[420px] flex-col overflow-hidden border border-black/10 shadow-lg",
-          radiusClass(design.radius),
-          className,
-        )}
-        style={{ background: design.surface, color: design.ink }}
-        dir="rtl"
-      >
-        <div
-          className="absolute inset-0 opacity-80"
-          style={patternStyle(design.backPattern, design.ink)}
-        />
-        <div
-          className="relative flex items-center justify-between px-4 py-2.5 text-white"
-          style={{ background: primary }}
-        >
-          <div className="flex items-center gap-2">
-            {data.logoDataUrl ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={data.logoDataUrl}
-                alt=""
-                className="h-8 w-8 rounded-md object-contain bg-white/95 p-0.5"
-              />
-            ) : (
-              <div
-                className="flex h-8 w-8 items-center justify-center rounded-md text-xs font-bold"
-                style={{ background: accent, color: primary }}
-              >
-                م
-              </div>
-            )}
-            <div>
-              <p className="text-[11px] font-semibold leading-tight">
-                {data.organization || "میدیا ئۆفیس"}
-              </p>
-              <p className="text-[9px] opacity-80">ناسنامەی ڕۆژنامەنووسی · پشتەوە</p>
-            </div>
-          </div>
-          <PressMark
-            word={data.pressWord}
-            design={design}
-            accent={accent}
-            primary={primary}
-          />
-        </div>
-
-        <div className="relative flex flex-1 flex-col gap-2 px-4 py-3 text-[11px]">
-          <div className="grid grid-cols-2 gap-2">
-            <Info label="ئایدی" value={data.badgeId || "—"} dir="ltr" />
-            <Info label="دەرکردن" value={data.issuedAt || "—"} dir="ltr" />
-            <Info label="بەسەردەچێت" value={data.expiresAt || "—"} dir="ltr" />
-            <Info label="خوێن" value={data.bloodType || "—"} dir="ltr" />
-            <Info label="مۆبایل" value={data.phone || "—"} dir="ltr" />
-            <Info label="ئیمەیڵ" value={data.email || "—"} dir="ltr" />
-          </div>
-          <div
-            className="mt-auto rounded-xl border px-3 py-2 text-[10px] leading-relaxed"
-            style={{ borderColor: `${primary}33`, color: design.muted }}
-          >
-            {data.notes || "ئەم ناسنامەیە تەنها بۆ مەبەستی ڕۆژنامەنووسی بەکاردێت."}
-          </div>
-        </div>
-      </article>
-    );
+    return <BackCommon data={data} design={design} className={className} />;
   }
 
-  const verticalPress = design.pressStyle === "vertical";
+  switch (design.layout) {
+    case "cinema":
+      return <LayoutCinema data={data} design={design} className={className} />;
+    case "masthead":
+      return <LayoutMasthead data={data} design={design} className={className} />;
+    case "lanyard":
+      return <LayoutLanyard data={data} design={design} className={className} />;
+    case "diagonal":
+      return <LayoutDiagonal data={data} design={design} className={className} />;
+    case "gallery":
+      return <LayoutGallery data={data} design={design} className={className} />;
+    case "neon":
+      return <LayoutNeon data={data} design={design} className={className} />;
+    case "field":
+      return <LayoutField data={data} design={design} className={className} />;
+    case "archive":
+      return <LayoutArchive data={data} design={design} className={className} />;
+    case "lens":
+      return <LayoutLens data={data} design={design} className={className} />;
+    case "hero":
+    default:
+      return <LayoutHero data={data} design={design} className={className} />;
+  }
+}
 
+function LayoutHero({
+  data,
+  design,
+  className,
+}: {
+  data: PressBadgeData;
+  design: PressBadgeDesign;
+  className?: string;
+}) {
   return (
     <article
-      className={cn(
-        "press-badge relative flex aspect-[85.6/54] w-full max-w-[420px] overflow-hidden border border-black/10 shadow-lg",
-        radiusClass(design.radius),
-        className,
-      )}
+      className={cn(BADGE_SHELL, "rounded-[1.4rem]", className)}
       style={{ background: design.surface, color: design.ink }}
       dir="rtl"
     >
       <div
-        className="absolute inset-0"
-        style={patternStyle(design.frontPattern, design.ink)}
-      />
-
-      {/* Left accent rail (visual right in RTL) */}
-      <div className="relative z-[1] flex w-[34%] flex-col" style={{ background: primary }}>
-        <div className="flex flex-1 flex-col items-center justify-center gap-3 p-3 text-center text-white">
-          {data.logoDataUrl ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={data.logoDataUrl}
-              alt=""
-              className="h-12 w-12 rounded-xl object-contain bg-white p-1 shadow-sm"
-            />
-          ) : (
-            <div
-              className="flex h-12 w-12 items-center justify-center rounded-xl text-lg font-black"
-              style={{ background: accent, color: primary }}
-            >
-              م
-            </div>
-          )}
-          <div>
-            <p className="text-[10px] font-medium opacity-80">MEDIA PASS</p>
-            <p className="mt-0.5 text-xs font-bold leading-snug">
-              {data.organization || "میدیا ئۆفیس"}
-            </p>
-          </div>
-          {verticalPress ? (
-            <div className="mt-1 flex flex-1 items-center">
-              <PressMark
-                word={data.pressWord}
-                design={design}
-                accent={accent}
-                primary={primary}
-              />
-            </div>
-          ) : null}
+        className="relative px-4 pb-5 pt-4 text-white"
+        style={{
+          background: `linear-gradient(165deg, ${design.primary} 0%, ${design.secondary || design.primary} 100%)`,
+        }}
+      >
+        <div className="mb-4 flex items-center justify-between gap-2">
+          <LogoBlock
+            src={data.logoDataUrl}
+            primary={design.primary}
+            accent={design.accent}
+            light
+          />
+          <p className="text-[10px] font-semibold tracking-wide opacity-80">
+            MEDIA CREDENTIAL
+          </p>
         </div>
+        <Photo
+          src={data.photoDataUrl}
+          muted={design.muted}
+          className="mx-auto h-36 w-28 rounded-2xl border-2 border-white/30 shadow-lg"
+        />
         <div
-          className="px-2 py-2 text-center text-[9px] font-semibold tracking-wide"
-          style={{ background: accent, color: primary }}
+          className="absolute inset-x-6 -bottom-3 rounded-full py-1.5 text-center text-xs font-black tracking-[0.45em]"
+          style={{ background: design.accent, color: design.primary }}
         >
-          {data.badgeId ? `#${data.badgeId}` : "PRESS ID"}
+          {(data.pressWord || "PRESS").toUpperCase()}
         </div>
       </div>
-
-      <div className="relative z-[1] flex flex-1 flex-col p-3.5">
-        <div className="mb-2 flex items-start justify-between gap-2">
-          {!verticalPress ? (
-            <PressMark
-              word={data.pressWord}
-              design={design}
-              accent={accent}
-              primary={primary}
-            />
-          ) : (
-            <span className="text-[10px] font-semibold" style={{ color: design.muted }}>
-              ناسنامەی ڕۆژنامەنووسی
-            </span>
-          )}
+      <div className="flex flex-1 flex-col px-4 pb-4 pt-6 text-center">
+        <p className="text-xl font-black leading-tight">
+          {data.fullName || "ناوی ڕۆژنامەنووس"}
+        </p>
+        <p className="mt-1 text-sm font-semibold" style={{ color: design.primary }}>
+          {data.title || "ڕۆژنامەنووس"}
+        </p>
+        <p className="mt-2 text-xs" style={{ color: design.muted }}>
+          {data.organization || "میدیا ئۆفیس"}
+        </p>
+        <div className="mt-auto space-y-1 border-t pt-3 text-[10px]" style={{ borderColor: `${design.primary}18`, color: design.muted }}>
+          <p dir="ltr">ID {data.badgeId || "—"}</p>
+          <p>
+            {data.issuedAt || "—"}
+            {data.expiresAt ? ` → ${data.expiresAt}` : ""}
+          </p>
         </div>
+      </div>
+    </article>
+  );
+}
 
-        <div className="flex flex-1 items-center gap-3">
-          <div
-            className="h-[4.6rem] w-[3.6rem] shrink-0 overflow-hidden border-2 bg-white/80"
-            style={{ borderColor: accent }}
-          >
-            {data.photoDataUrl ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={data.photoDataUrl}
-                alt=""
-                className="h-full w-full object-cover"
-              />
-            ) : (
-              <div
-                className="flex h-full w-full items-center justify-center text-[10px]"
-                style={{ color: design.muted }}
-              >
-                وێنە
-              </div>
-            )}
+function LayoutCinema({
+  data,
+  design,
+  className,
+}: {
+  data: PressBadgeData;
+  design: PressBadgeDesign;
+  className?: string;
+}) {
+  const holes = Array.from({ length: 10 });
+  return (
+    <article
+      className={cn(BADGE_SHELL, "rounded-xl", className)}
+      style={{ background: design.surface, color: design.ink }}
+      dir="rtl"
+    >
+      <div className="flex flex-1">
+        <div
+          className="flex w-5 flex-col justify-between py-2"
+          style={{ background: design.primary }}
+        >
+          {holes.map((_, i) => (
+            <span key={i} className="mx-auto h-2.5 w-2.5 rounded-sm bg-black/50" />
+          ))}
+        </div>
+        <div className="flex flex-1 flex-col px-3 py-3">
+          <div className="mb-3 flex items-center justify-between">
+            <LogoBlock
+              src={data.logoDataUrl}
+              primary={design.primary}
+              accent={design.accent}
+            />
+            <span
+              className="text-[10px] font-bold tracking-[0.3em]"
+              style={{ color: design.accent }}
+            >
+              TAKE
+            </span>
           </div>
-          <div className="min-w-0 flex-1">
-            <p className="truncate text-lg font-black leading-tight">
+          <Photo
+            src={data.photoDataUrl}
+            muted={design.muted}
+            className="h-40 w-full rounded-md border border-white/10"
+          />
+          <PressWord
+            word={data.pressWord}
+            accent={design.accent}
+            primary={design.primary}
+            variant="solid"
+          />
+          <div className="mt-3 text-center">
+            <p className="text-lg font-black">
               {data.fullName || "ناوی ڕۆژنامەنووس"}
             </p>
-            <p
-              className="mt-1 text-xs font-semibold"
-              style={{ color: primary }}
-            >
-              {data.title || "ڕۆژنامەنووس"}
+            <p className="mt-1 text-xs" style={{ color: design.muted }}>
+              {data.title || "ڕۆژنامەنووس"} · {data.organization || "میدیا ئۆفیس"}
             </p>
-            <p className="mt-2 text-[10px]" style={{ color: design.muted }}>
-              دەرکردن: {data.issuedAt || "—"}
-              {data.expiresAt ? ` · تا ${data.expiresAt}` : ""}
+            <p className="mt-2 text-[10px]" style={{ color: design.accent }} dir="ltr">
+              #{data.badgeId || "——"}
             </p>
           </div>
         </div>
-
         <div
-          className="mt-2 flex items-center justify-between border-t pt-2 text-[9px] font-medium"
-          style={{ borderColor: `${primary}22`, color: design.muted }}
+          className="flex w-5 flex-col justify-between py-2"
+          style={{ background: design.primary }}
         >
-          <span>Official Press Credential</span>
-          <span style={{ color: accent }} className="font-bold tracking-widest">
-            {(data.pressWord || "PRESS").toUpperCase()}
+          {holes.map((_, i) => (
+            <span key={i} className="mx-auto h-2.5 w-2.5 rounded-sm bg-black/50" />
+          ))}
+        </div>
+      </div>
+    </article>
+  );
+}
+
+function LayoutMasthead({
+  data,
+  design,
+  className,
+}: {
+  data: PressBadgeData;
+  design: PressBadgeDesign;
+  className?: string;
+}) {
+  return (
+    <article
+      className={cn(BADGE_SHELL, "rounded-md border border-black/15", className)}
+      style={{ background: design.surface, color: design.ink }}
+      dir="rtl"
+    >
+      <div className="border-b-4 px-3 pb-2 pt-3" style={{ borderColor: design.accent }}>
+        <PressWord
+          word={data.pressWord}
+          accent={design.accent}
+          primary={design.primary}
+          variant="serif"
+        />
+        <p className="mt-1 text-center text-[10px] uppercase tracking-[0.35em]" style={{ color: design.muted }}>
+          Official Correspondent Pass
+        </p>
+      </div>
+      <div className="flex flex-1 flex-col items-center gap-3 px-4 py-4">
+        <LogoBlock
+          src={data.logoDataUrl}
+          primary={design.primary}
+          accent={design.accent}
+        />
+        <Photo
+          src={data.photoDataUrl}
+          muted={design.muted}
+          className="h-36 w-28 border border-black/20"
+        />
+        <div className="w-full text-center">
+          <p className="font-serif text-xl font-black leading-tight">
+            {data.fullName || "ناوی ڕۆژنامەنووس"}
+          </p>
+          <p className="mt-1 text-sm italic" style={{ color: design.accent }}>
+            {data.title || "ڕۆژنامەنووس"}
+          </p>
+          <p className="mt-2 border-y border-black/10 py-2 text-xs font-semibold">
+            {data.organization || "میدیا ئۆفیس"}
+          </p>
+          <p className="mt-2 text-[10px]" style={{ color: design.muted }} dir="ltr">
+            No. {data.badgeId || "—"} · {data.issuedAt || "—"}
+          </p>
+        </div>
+      </div>
+    </article>
+  );
+}
+
+function LayoutLanyard({
+  data,
+  design,
+  className,
+}: {
+  data: PressBadgeData;
+  design: PressBadgeDesign;
+  className?: string;
+}) {
+  return (
+    <article
+      className={cn(BADGE_SHELL, "rounded-[1.6rem] border border-black/5", className)}
+      style={{ background: design.surface, color: design.ink }}
+      dir="rtl"
+    >
+      <div className="flex justify-center pt-3">
+        <span
+          className="h-3 w-10 rounded-full border-2"
+          style={{ borderColor: design.secondary || design.accent }}
+        />
+      </div>
+      <div className="mt-3 flex justify-center">
+        <LogoBlock
+          src={data.logoDataUrl}
+          primary={design.primary}
+          accent={design.accent}
+        />
+      </div>
+      <div className="mt-4 flex justify-center">
+        <div
+          className="rounded-full p-1"
+          style={{ boxShadow: `0 0 0 4px ${design.accent}` }}
+        >
+          <Photo
+            src={data.photoDataUrl}
+            muted={design.muted}
+            className="h-36 w-36 rounded-full"
+          />
+        </div>
+      </div>
+      <div className="mt-4 flex flex-1 flex-col px-4 pb-4 text-center">
+        <PressWord
+          word={data.pressWord}
+          accent={design.accent}
+          primary={design.primary}
+          variant="solid"
+        />
+        <p className="mt-3 text-xl font-black">
+          {data.fullName || "ناوی ڕۆژنامەنووس"}
+        </p>
+        <p className="mt-1 text-sm" style={{ color: design.primary }}>
+          {data.title || "ڕۆژنامەنووس"}
+        </p>
+        <p className="mt-auto pt-3 text-xs" style={{ color: design.muted }}>
+          {data.organization || "میدیا ئۆفیس"} · {data.badgeId || "—"}
+        </p>
+      </div>
+    </article>
+  );
+}
+
+function LayoutDiagonal({
+  data,
+  design,
+  className,
+}: {
+  data: PressBadgeData;
+  design: PressBadgeDesign;
+  className?: string;
+}) {
+  return (
+    <article
+      className={cn(BADGE_SHELL, "rounded-2xl", className)}
+      style={{ background: design.surface, color: design.ink }}
+      dir="rtl"
+    >
+      <div className="relative h-[42%] overflow-hidden" style={{ background: design.primary }}>
+        <div
+          className="absolute inset-0"
+          style={{
+            background: `linear-gradient(135deg, ${design.primary} 45%, ${design.secondary || design.accent} 45%)`,
+          }}
+        />
+        <div className="relative z-[1] flex h-full flex-col items-center justify-center gap-2 p-4 text-white">
+          <LogoBlock
+            src={data.logoDataUrl}
+            primary={design.primary}
+            accent={design.accent}
+            light
+          />
+          <PressWord
+            word={data.pressWord}
+            accent={design.accent}
+            primary={design.primary}
+            variant="stamp"
+          />
+        </div>
+      </div>
+      <div className="-mt-8 flex flex-1 flex-col items-center px-4 pb-4">
+        <Photo
+          src={data.photoDataUrl}
+          muted={design.muted}
+          className="h-32 w-28 rounded-xl border-4 border-white shadow-md"
+        />
+        <p className="mt-3 text-center text-lg font-black">
+          {data.fullName || "ناوی ڕۆژنامەنووس"}
+        </p>
+        <p className="text-sm font-semibold" style={{ color: design.secondary || design.primary }}>
+          {data.title || "ڕۆژنامەنووس"}
+        </p>
+        <p className="mt-auto text-center text-[11px]" style={{ color: design.muted }}>
+          {data.organization || "میدیا ئۆفیس"}
+          <br />
+          <span dir="ltr">{data.badgeId || "—"}</span>
+        </p>
+      </div>
+    </article>
+  );
+}
+
+function LayoutGallery({
+  data,
+  design,
+  className,
+}: {
+  data: PressBadgeData;
+  design: PressBadgeDesign;
+  className?: string;
+}) {
+  return (
+    <article
+      className={cn(BADGE_SHELL, "rounded-sm p-3", className)}
+      style={{ background: design.secondary || "#E7E5E4", color: design.ink }}
+      dir="rtl"
+    >
+      <div
+        className="flex h-full flex-col border-[6px] bg-white p-3"
+        style={{ borderColor: design.primary }}
+      >
+        <div className="mb-2 flex items-center justify-between">
+          <LogoBlock
+            src={data.logoDataUrl}
+            primary={design.primary}
+            accent={design.accent}
+          />
+          <span className="text-[10px] font-bold tracking-[0.25em]" style={{ color: design.muted }}>
+            PASS
           </span>
         </div>
+        <Photo
+          src={data.photoDataUrl}
+          muted={design.muted}
+          className="h-40 w-full border border-black/10"
+        />
+        <div className="mt-3 text-center">
+          <PressWord
+            word={data.pressWord}
+            accent={design.accent}
+            primary={design.primary}
+            variant="outline"
+          />
+          <p className="mt-2 text-lg font-black">
+            {data.fullName || "ناوی ڕۆژنامەنووس"}
+          </p>
+          <p className="text-xs" style={{ color: design.muted }}>
+            {data.title || "ڕۆژنامەنووس"}
+          </p>
+        </div>
+        <div
+          className="mt-auto border-t pt-2 text-center text-[10px]"
+          style={{ borderColor: `${design.primary}22`, color: design.muted }}
+        >
+          {data.organization || "میدیا ئۆفیس"} · {data.badgeId || "—"}
+        </div>
+      </div>
+    </article>
+  );
+}
+
+function LayoutNeon({
+  data,
+  design,
+  className,
+}: {
+  data: PressBadgeData;
+  design: PressBadgeDesign;
+  className?: string;
+}) {
+  return (
+    <article
+      className={cn(BADGE_SHELL, "rounded-2xl border", className)}
+      style={{
+        background: design.surface,
+        color: design.ink,
+        borderColor: `${design.accent}55`,
+        boxShadow: `0 0 0 1px ${design.accent}33, 0 20px 50px -24px ${design.accent}`,
+      }}
+      dir="rtl"
+    >
+      <div className="px-4 pt-4 text-center">
+        <PressWord
+          word={data.pressWord}
+          accent={design.accent}
+          primary={design.primary}
+          variant="neon"
+        />
+        <p
+          className="mt-1 text-[10px] tracking-[0.4em]"
+          style={{ color: design.secondary || design.muted }}
+        >
+          ACCESS ALL AREAS
+        </p>
+      </div>
+      <div className="mx-4 mt-3 overflow-hidden rounded-2xl border" style={{ borderColor: `${design.accent}66` }}>
+        <Photo
+          src={data.photoDataUrl}
+          muted={design.muted}
+          className="h-40 w-full"
+        />
+      </div>
+      <div className="flex flex-1 flex-col items-center px-4 py-4 text-center">
+        <LogoBlock
+          src={data.logoDataUrl}
+          primary={design.primary}
+          accent={design.accent}
+          light
+        />
+        <p className="mt-3 text-lg font-black">
+          {data.fullName || "ناوی ڕۆژنامەنووس"}
+        </p>
+        <p className="text-sm" style={{ color: design.accent }}>
+          {data.title || "ڕۆژنامەنووس"}
+        </p>
+        <p className="mt-auto text-[11px]" style={{ color: design.muted }}>
+          {data.organization || "میدیا ئۆفیس"}
+          <br />
+          <span dir="ltr">{data.badgeId || "—"}</span>
+        </p>
+      </div>
+    </article>
+  );
+}
+
+function LayoutField({
+  data,
+  design,
+  className,
+}: {
+  data: PressBadgeData;
+  design: PressBadgeDesign;
+  className?: string;
+}) {
+  return (
+    <article
+      className={cn(BADGE_SHELL, "rounded-2xl", className)}
+      style={{ background: design.surface, color: design.ink }}
+      dir="rtl"
+    >
+      <div
+        className="flex items-center justify-between px-4 py-3 text-white"
+        style={{ background: design.primary }}
+      >
+        <LogoBlock
+          src={data.logoDataUrl}
+          primary={design.primary}
+          accent={design.accent}
+          light
+        />
+        <div className="text-left" dir="ltr">
+          <p className="text-[10px] opacity-80">FIELD</p>
+          <p className="text-sm font-black tracking-widest">
+            {(data.pressWord || "PRESS").toUpperCase()}
+          </p>
+        </div>
+      </div>
+      <div className="flex flex-1 flex-col items-center px-4 py-4">
+        <Photo
+          src={data.photoDataUrl}
+          muted={design.muted}
+          className="h-40 w-full rounded-xl border-2"
+        />
+        <p className="mt-3 text-center text-xl font-black">
+          {data.fullName || "ناوی ڕۆژنامەنووس"}
+        </p>
+        <p className="text-sm font-semibold" style={{ color: design.secondary || design.primary }}>
+          {data.title || "ڕۆژنامەنووس"}
+        </p>
+        <p className="mt-1 text-xs" style={{ color: design.muted }}>
+          {data.organization || "میدیا ئۆفیس"}
+        </p>
+      </div>
+      <div
+        className="px-4 py-2.5 text-center text-xs font-black tracking-[0.25em]"
+        style={{ background: design.accent, color: design.primary }}
+      >
+        {data.badgeId ? `#${data.badgeId}` : "AUTHORIZED"}
+      </div>
+    </article>
+  );
+}
+
+function LayoutArchive({
+  data,
+  design,
+  className,
+}: {
+  data: PressBadgeData;
+  design: PressBadgeDesign;
+  className?: string;
+}) {
+  return (
+    <article
+      className={cn(BADGE_SHELL, "rounded-md", className)}
+      style={{
+        background: design.surface,
+        color: design.ink,
+        backgroundImage: `repeating-linear-gradient(0deg, transparent, transparent 27px, ${design.secondary}55 28px)`,
+      }}
+      dir="rtl"
+    >
+      <div className="relative flex flex-1 flex-col p-4">
+        <div className="mb-3 flex items-start justify-between">
+          <LogoBlock
+            src={data.logoDataUrl}
+            primary={design.primary}
+            accent={design.accent}
+          />
+          <PressWord
+            word={data.pressWord}
+            accent={design.accent}
+            primary={design.primary}
+            variant="stamp"
+          />
+        </div>
+        <Photo
+          src={data.photoDataUrl}
+          muted={design.muted}
+          className="mx-auto h-36 w-28 rotate-[-2deg] border border-black/20 shadow-sm"
+        />
+        <div className="mt-4 text-center">
+          <p className="font-serif text-xl font-bold">
+            {data.fullName || "ناوی ڕۆژنامەنووس"}
+          </p>
+          <p className="mt-1 text-sm" style={{ color: design.accent }}>
+            {data.title || "ڕۆژنامەنووس"}
+          </p>
+          <p className="mt-3 text-xs uppercase tracking-[0.2em]" style={{ color: design.muted }}>
+            {data.organization || "میدیا ئۆفیس"}
+          </p>
+          <p className="mt-auto pt-4 text-[10px]" style={{ color: design.muted }} dir="ltr">
+            ARCHIVE · {data.badgeId || "—"} · {data.issuedAt || "—"}
+          </p>
+        </div>
+      </div>
+    </article>
+  );
+}
+
+function LayoutLens({
+  data,
+  design,
+  className,
+}: {
+  data: PressBadgeData;
+  design: PressBadgeDesign;
+  className?: string;
+}) {
+  return (
+    <article
+      className={cn(BADGE_SHELL, "rounded-[1.5rem]", className)}
+      style={{ background: design.surface, color: design.ink }}
+      dir="rtl"
+    >
+      <div
+        className="relative flex flex-col items-center px-4 pb-6 pt-5 text-white"
+        style={{
+          background: `radial-gradient(circle at 50% 30%, ${design.secondary || design.primary}, ${design.primary})`,
+        }}
+      >
+        <LogoBlock
+          src={data.logoDataUrl}
+          primary={design.primary}
+          accent={design.accent}
+          light
+        />
+        <div
+          className="mt-4 rounded-full p-1.5"
+          style={{ boxShadow: `0 0 0 3px ${design.accent}, 0 0 0 8px ${design.accent}33` }}
+        >
+          <Photo
+            src={data.photoDataUrl}
+            muted={design.muted}
+            className="h-32 w-32 rounded-full"
+          />
+        </div>
+        <div
+          className="mt-4 rounded-full px-4 py-1 text-xs font-black tracking-[0.4em]"
+          style={{ background: design.accent, color: design.primary }}
+        >
+          {(data.pressWord || "PRESS").toUpperCase()}
+        </div>
+      </div>
+      <div className="flex flex-1 flex-col px-4 py-4 text-center">
+        <p className="text-xl font-black">
+          {data.fullName || "ناوی ڕۆژنامەنووس"}
+        </p>
+        <p className="mt-1 text-sm" style={{ color: design.secondary || design.primary }}>
+          {data.title || "ڕۆژنامەنووس"}
+        </p>
+        <p className="mt-auto text-xs" style={{ color: design.muted }}>
+          {data.organization || "میدیا ئۆفیس"}
+          <br />
+          <span dir="ltr">{data.badgeId || "—"}</span>
+        </p>
       </div>
     </article>
   );
@@ -346,9 +870,9 @@ function Info({
   dir?: "ltr" | "rtl";
 }) {
   return (
-    <div>
-      <p className="text-[9px] opacity-60">{label}</p>
-      <p className="truncate font-semibold" dir={dir}>
+    <div className="rounded-xl bg-black/[0.03] px-2.5 py-2">
+      <p className="text-[9px] opacity-55">{label}</p>
+      <p className="truncate text-[11px] font-semibold" dir={dir}>
         {value}
       </p>
     </div>

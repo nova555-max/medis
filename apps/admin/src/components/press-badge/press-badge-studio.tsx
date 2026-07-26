@@ -12,7 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Input, Label } from "@/components/ui/input";
 import { cn } from "@/lib/cn";
 
-const STORAGE_KEY = "mo_press_badge_draft_v1";
+const STORAGE_KEY = "mo_press_badge_draft_v2";
 
 function readFileAsDataUrl(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -102,7 +102,7 @@ export function PressBadgeStudio({
         </p>
       </div>
 
-      <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_420px]">
+      <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_320px]">
         <div className="space-y-5 print:hidden">
           <section className="panel space-y-3 p-4">
             <h2 className="font-semibold">١) هەڵبژاردنی دیزاین ({PRESS_BADGE_DESIGNS.length})</h2>
@@ -344,7 +344,7 @@ export function PressBadgeStudio({
             <p className="print:hidden text-sm text-emerald-700">{savedHint}</p>
           ) : null}
 
-          <div className="print:hidden flex justify-center rounded-2xl border border-line bg-surface-muted/40 p-4">
+          <div className="print:hidden flex justify-center rounded-2xl border border-line bg-surface-muted/40 p-5">
             <PressBadgeCard data={data} side={side} />
           </div>
 

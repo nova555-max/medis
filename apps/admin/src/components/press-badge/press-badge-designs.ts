@@ -1,176 +1,160 @@
 export type PressBadgeDesignId =
-  | "navy_classic"
-  | "crimson_flash"
-  | "charcoal_minimal"
-  | "gold_prestige"
-  | "teal_broadcast"
-  | "ink_broadsheet"
-  | "emerald_field"
-  | "amber_deadline"
-  | "violet_lens"
-  | "slate_wire";
+  | "hero_midnight"
+  | "cinema_strip"
+  | "masthead_ink"
+  | "lanyard_clean"
+  | "diagonal_pulse"
+  | "gallery_frame"
+  | "night_neon"
+  | "field_pass"
+  | "archive_stamp"
+  | "lens_ring";
+
+export type PressBadgeLayout =
+  | "hero"
+  | "cinema"
+  | "masthead"
+  | "lanyard"
+  | "diagonal"
+  | "gallery"
+  | "neon"
+  | "field"
+  | "archive"
+  | "lens";
 
 export type PressBadgeDesign = {
   id: PressBadgeDesignId;
   nameCkb: string;
   nameEn: string;
-  /** Primary panel / header */
+  layout: PressBadgeLayout;
   primary: string;
-  /** Accent stripe / PRESS mark */
   accent: string;
-  /** Card background */
   surface: string;
-  /** Main text */
   ink: string;
-  /** Muted text */
   muted: string;
-  /** PRESS word style */
-  pressStyle: "banner" | "stamp" | "outline" | "ribbon" | "vertical";
-  frontPattern: "none" | "dots" | "lines" | "grid" | "diagonal";
-  backPattern: "none" | "dots" | "lines" | "grid" | "diagonal";
-  radius: "sharp" | "soft" | "pill";
+  secondary?: string;
 };
 
 export const PRESS_BADGE_DESIGNS: PressBadgeDesign[] = [
   {
-    id: "navy_classic",
-    nameCkb: "نیلی کلاسیک",
-    nameEn: "Navy Classic",
-    primary: "#1B3A5F",
-    accent: "#C9A227",
-    surface: "#F7F4EE",
-    ink: "#142033",
-    muted: "#5C6B7A",
-    pressStyle: "banner",
-    frontPattern: "lines",
-    backPattern: "dots",
-    radius: "soft",
+    id: "hero_midnight",
+    nameCkb: "شەوی هیرۆ",
+    nameEn: "Hero Midnight",
+    layout: "hero",
+    primary: "#0B1C2C",
+    accent: "#E8B86D",
+    surface: "#F4EFE6",
+    ink: "#0B1C2C",
+    muted: "#6A7A88",
+    secondary: "#16324A",
   },
   {
-    id: "crimson_flash",
-    nameCkb: "سووری میدیا",
-    nameEn: "Crimson Flash",
-    primary: "#8B1E2D",
-    accent: "#F2E8D5",
-    surface: "#FFF8F6",
-    ink: "#2A1216",
-    muted: "#7A4A52",
-    pressStyle: "stamp",
-    frontPattern: "diagonal",
-    backPattern: "none",
-    radius: "sharp",
+    id: "cinema_strip",
+    nameCkb: "شریتی سینەما",
+    nameEn: "Cinema Strip",
+    layout: "cinema",
+    primary: "#111111",
+    accent: "#F5C518",
+    surface: "#1A1A1A",
+    ink: "#F5F5F5",
+    muted: "#A3A3A3",
+    secondary: "#2A2A2A",
   },
   {
-    id: "charcoal_minimal",
-    nameCkb: "ڕەشی مینیمال",
-    nameEn: "Charcoal Minimal",
-    primary: "#1F1F1F",
-    accent: "#E8E4DC",
-    surface: "#FAFAF8",
-    ink: "#111111",
-    muted: "#6B6B6B",
-    pressStyle: "outline",
-    frontPattern: "none",
-    backPattern: "lines",
-    radius: "sharp",
+    id: "masthead_ink",
+    nameCkb: "سەرپەڕەی ڕۆژنامە",
+    nameEn: "Masthead Ink",
+    layout: "masthead",
+    primary: "#1A1A1A",
+    accent: "#B91C1C",
+    surface: "#F7F4EC",
+    ink: "#1A1A1A",
+    muted: "#5B5B5B",
+    secondary: "#E7E1D4",
   },
   {
-    id: "gold_prestige",
-    nameCkb: "زێڕی پرستیژ",
-    nameEn: "Gold Prestige",
-    primary: "#2C2416",
-    accent: "#C6A15B",
-    surface: "#FBF6EA",
-    ink: "#2C2416",
-    muted: "#7A6A4A",
-    pressStyle: "ribbon",
-    frontPattern: "dots",
-    backPattern: "dots",
-    radius: "soft",
+    id: "lanyard_clean",
+    nameCkb: "پاک و مۆدێرن",
+    nameEn: "Lanyard Clean",
+    layout: "lanyard",
+    primary: "#0F766E",
+    accent: "#F97316",
+    surface: "#FFFFFF",
+    ink: "#134E4A",
+    muted: "#64748B",
+    secondary: "#CCFBF1",
   },
   {
-    id: "teal_broadcast",
-    nameCkb: "شینـسەوزی پەخش",
-    nameEn: "Teal Broadcast",
-    primary: "#0F4C5C",
-    accent: "#E36414",
-    surface: "#F3FAFB",
-    ink: "#0B2E36",
-    muted: "#4D6E76",
-    pressStyle: "banner",
-    frontPattern: "grid",
-    backPattern: "none",
-    radius: "soft",
-  },
-  {
-    id: "ink_broadsheet",
-    nameCkb: "ڕۆژنامەی ڕەشوسپی",
-    nameEn: "Ink Broadsheet",
-    primary: "#111827",
-    accent: "#111827",
-    surface: "#F5F5F0",
-    ink: "#111827",
-    muted: "#4B5563",
-    pressStyle: "vertical",
-    frontPattern: "lines",
-    backPattern: "lines",
-    radius: "sharp",
-  },
-  {
-    id: "emerald_field",
-    nameCkb: "زەمری مەیدانی",
-    nameEn: "Emerald Field",
-    primary: "#14532D",
+    id: "diagonal_pulse",
+    nameCkb: "لاری توند",
+    nameEn: "Diagonal Pulse",
+    layout: "diagonal",
+    primary: "#7F1D1D",
     accent: "#FDE68A",
-    surface: "#F4FBF6",
-    ink: "#052E16",
-    muted: "#3F6B4E",
-    pressStyle: "stamp",
-    frontPattern: "none",
-    backPattern: "grid",
-    radius: "soft",
-  },
-  {
-    id: "amber_deadline",
-    nameCkb: "کەهڕەبایی دەدلاین",
-    nameEn: "Amber Deadline",
-    primary: "#9A3412",
-    accent: "#1C1917",
     surface: "#FFF7ED",
     ink: "#1C1917",
     muted: "#78716C",
-    pressStyle: "ribbon",
-    frontPattern: "diagonal",
-    backPattern: "dots",
-    radius: "pill",
+    secondary: "#9A3412",
   },
   {
-    id: "violet_lens",
-    nameCkb: "مۆری لینز",
-    nameEn: "Violet Lens",
-    primary: "#3B0764",
-    accent: "#F5D0FE",
-    surface: "#FBF5FF",
-    ink: "#2E1065",
-    muted: "#6B7280",
-    pressStyle: "outline",
-    frontPattern: "dots",
-    backPattern: "none",
-    radius: "soft",
+    id: "gallery_frame",
+    nameCkb: "چوارچێوەی گەلەری",
+    nameEn: "Gallery Frame",
+    layout: "gallery",
+    primary: "#292524",
+    accent: "#A8A29E",
+    surface: "#FAFAF9",
+    ink: "#1C1917",
+    muted: "#78716C",
+    secondary: "#E7E5E4",
   },
   {
-    id: "slate_wire",
-    nameCkb: "سلێتی وایر",
-    nameEn: "Slate Wire",
-    primary: "#334155",
+    id: "night_neon",
+    nameCkb: "نیۆنی شەو",
+    nameEn: "Night Neon",
+    layout: "neon",
+    primary: "#020617",
+    accent: "#22D3EE",
+    surface: "#0B1220",
+    ink: "#E2E8F0",
+    muted: "#94A3B8",
+    secondary: "#F472B6",
+  },
+  {
+    id: "field_pass",
+    nameCkb: "پاسى مەیدان",
+    nameEn: "Field Pass",
+    layout: "field",
+    primary: "#14532D",
+    accent: "#FACC15",
+    surface: "#ECFDF5",
+    ink: "#052E16",
+    muted: "#3F6212",
+    secondary: "#166534",
+  },
+  {
+    id: "archive_stamp",
+    nameCkb: "مۆری ئەرشیف",
+    nameEn: "Archive Stamp",
+    layout: "archive",
+    primary: "#44403C",
+    accent: "#B45309",
+    surface: "#F5F0E6",
+    ink: "#292524",
+    muted: "#78716C",
+    secondary: "#D6D3D1",
+  },
+  {
+    id: "lens_ring",
+    nameCkb: "بازنەی کامێرا",
+    nameEn: "Lens Ring",
+    layout: "lens",
+    primary: "#1E3A5F",
     accent: "#38BDF8",
-    surface: "#F8FAFC",
-    ink: "#0F172A",
+    surface: "#F0F9FF",
+    ink: "#0C4A6E",
     muted: "#64748B",
-    pressStyle: "banner",
-    frontPattern: "grid",
-    backPattern: "lines",
-    radius: "soft",
+    secondary: "#075985",
   },
 ];
 
@@ -215,5 +199,5 @@ export const DEFAULT_PRESS_BADGE: PressBadgeData = {
   accentOverride: "",
   logoDataUrl: null,
   photoDataUrl: null,
-  designId: "navy_classic",
+  designId: "hero_midnight",
 };

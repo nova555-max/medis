@@ -24,17 +24,16 @@ export function EmployeeForgotPasswordForm() {
         ئایدییەکەت بنووسە. داواکاری دەچێت بۆ ئەدمین و ئەو وشەی نهێنی نوێت پێ دەدات.
       </p>
       <div>
-        <Label htmlFor="employeeId">ئایدی کارمەند (١٠ ژمارە)</Label>
+        <Label htmlFor="employeeId">ئایدی کارمەند</Label>
         <Input
           id="employeeId"
           name="employeeId"
           inputMode="numeric"
-          pattern="[0-9]{10}"
-          maxLength={10}
+          maxLength={64}
           required
           dir="ltr"
           className="text-left tracking-wider"
-          placeholder="##########"
+          placeholder="ئایدیی چوونەژوورەوە"
         />
       </div>
       {state.error && (

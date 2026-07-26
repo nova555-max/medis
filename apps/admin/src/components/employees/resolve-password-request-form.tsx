@@ -14,9 +14,11 @@ const initial: EmpPwdState = {};
 
 export function ResolvePasswordRequestForm({
   requestId,
+  employeeId,
   employeeLabel,
 }: {
   requestId: string;
+  employeeId: string;
   employeeLabel: string;
 }) {
   const [state, formAction, pending] = useActionState(
@@ -24,16 +26,20 @@ export function ResolvePasswordRequestForm({
     initial,
   );
   const [password, setPassword] = useState("");
+  const formKey = requestId || employeeId;
 
   return (
     <form action={formAction} className="mt-3 space-y-3 border-t border-line pt-3">
-      <input type="hidden" name="requestId" value={requestId} />
+      {requestId ? (
+        <input type="hidden" name="requestId" value={requestId} />
+      ) : null}
+      <input type="hidden" name="employeeId" value={employeeId} />
       <p className="text-sm font-medium">{employeeLabel}</p>
       <div className="flex flex-wrap gap-2">
         <div className="min-w-[12rem] flex-1">
-          <Label htmlFor={`pwd-${requestId}`}>وشەی نهێنی نوێ</Label>
+          <Label htmlFor={`pwd-${formKey}`}>وشەی نهێنی نوێ</Label>
           <Input
-            id={`pwd-${requestId}`}
+            id={`pwd-${formKey}`}
             name="password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}

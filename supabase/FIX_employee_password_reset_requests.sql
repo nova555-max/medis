@@ -1,4 +1,4 @@
--- Employee password reset requests (admin must set new password)
+-- Apply in Supabase SQL Editor if password-reset requests fail (table missing).
 
 create table if not exists public.employee_password_reset_requests (
   id uuid primary key default gen_random_uuid(),
@@ -12,7 +12,6 @@ create table if not exists public.employee_password_reset_requests (
   admin_note text
 );
 
--- Allow only one pending per employee
 create unique index if not exists employee_pwd_reset_pending_uidx
   on public.employee_password_reset_requests (employee_id)
   where status = 'pending';
@@ -33,3 +32,41 @@ create policy employee_pwd_reset_admin on public.employee_password_reset_request
     company_id = public.current_profile_company_id()
     and public.is_company_admin()
   );
+
+grant select, insert, update, delete on public.employee_password_reset_requests to authenticated;
+grant all on public.employee_password_reset_requests to service_role;
+
+-- Reliable request path (works from server with service role)
+create or replace function public.admin_list_pending_password_resets()
+returns table (
+  id uuid,
+  employee_id uuid,
+  requested_at timestamptz,
+  full_name text,
+  employee_code text
+)
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  if not public.is_company_admin() then
+    raise exception 'not authorized';
+  end if;
+
+  return query
+  select
+    r.id,
+    r.employee_id,
+    r.requested_at,
+    e.full_name,
+    e.employee_code
+  from public.employee_password_reset_requests r
+  join public.employees e on e.id = r.employee_id
+  where r.company_id = public.current_profile_company_id()
+    and r.status = 'pending'
+  order by r.requested_at desc;
+end;
+$$;
+
+grant execute on function public.admin_list_pending_password_resets() to authenticated;

@@ -12,7 +12,6 @@ create table if not exists public.employee_password_reset_requests (
   admin_note text
 );
 
--- Allow only one pending per employee
 create unique index if not exists employee_pwd_reset_pending_uidx
   on public.employee_password_reset_requests (employee_id)
   where status = 'pending';
@@ -33,3 +32,6 @@ create policy employee_pwd_reset_admin on public.employee_password_reset_request
     company_id = public.current_profile_company_id()
     and public.is_company_admin()
   );
+
+grant select, insert, update, delete on public.employee_password_reset_requests to authenticated;
+grant all on public.employee_password_reset_requests to service_role;

@@ -18,6 +18,7 @@ export const ckb = {
   reports: "ڕاپۆرتەکان",
   notifications: "ئاگادارییەکان",
   qr: "کۆدی QR",
+  pressBadges: "ناسنامەی ڕۆژنامەنووسی",
   activityLogs: "تۆماری چالاکی",
   backups: "پاشەکەوت",
   settings: "ڕێکخستنەکان",

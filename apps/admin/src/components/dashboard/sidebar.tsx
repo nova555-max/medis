@@ -19,6 +19,7 @@ import {
   Clock3,
   CalendarDays,
   KeyRound,
+  IdCard,
 } from "lucide-react";
 import { ckb } from "@/lib/ckb";
 import { cn } from "@/lib/cn";
@@ -45,6 +46,7 @@ const nav: NavItem[] = [
   { href: "/reports", label: ckb.reports, icon: BarChart3 },
   { href: "/notifications", label: ckb.notifications, icon: Bell },
   { href: "/qr", label: ckb.qr, icon: QrCode },
+  { href: "/press-badges", label: ckb.pressBadges, icon: IdCard },
   { href: "/activity-logs", label: ckb.activityLogs, icon: ScrollText, ownerOnly: true },
   { href: "/backups", label: ckb.backups, icon: DatabaseBackup, ownerOnly: true },
   { href: "/settings", label: ckb.settings, icon: Settings, ownerOnly: true },

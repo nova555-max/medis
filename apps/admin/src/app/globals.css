@@ -541,7 +541,9 @@ body {
   }
 
   .qr-print-screen,
-  .qr-print-screen * {
+  .qr-print-screen *,
+  .press-badge-print-sheet,
+  .press-badge-print-sheet * {
     visibility: visible !important;
   }
 
@@ -592,6 +594,38 @@ body {
   .qr-print-poster__steps li {
     font-size: 11pt;
     padding: 0.7rem 0.9rem;
+  }
+
+  .press-badge-print-sheet {
+    position: fixed !important;
+    inset: 0 !important;
+    z-index: 9999 !important;
+    background: #fff !important;
+    display: block !important;
+  }
+
+  .press-badge-print-page {
+    break-after: page;
+    page-break-after: always;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 90vh;
+    padding: 12mm;
+  }
+
+  .press-badge-print-page:last-child {
+    break-after: auto;
+    page-break-after: auto;
+  }
+
+  .press-badge {
+    width: 86mm !important;
+    max-width: 86mm !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+    box-shadow: none !important;
   }
 }
 

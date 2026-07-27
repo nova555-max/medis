@@ -90,7 +90,6 @@ export function EmployeeLoginForm() {
           id="employeeId"
           name="employeeId"
           inputMode="numeric"
-          pattern="[0-9]{10}"
           maxLength={64}
           required
           dir="ltr"

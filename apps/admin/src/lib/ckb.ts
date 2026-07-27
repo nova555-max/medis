@@ -29,7 +29,8 @@ export const ckb = {
   holidays: "پشووەکان",
   gpsHistory: "مێژووی GPS",
   print: "چاپکردن",
-  desktopBlocked: "ئەپی کارمەند تەنها لە مۆبایل بەردەستە. تکایە لە مۆبایل بچۆ ژوورەوە.",
+  desktopBlocked:
+    "ئەپی کارمەند تەنها لە مۆبایل بەردەستە. لە مۆبایل لینکی /employee/login بکەرەوە (دۆخی Desktop Site ناکە).",
   checkIn: "چک-ئین",
   checkOut: "چک-ئاوت",
   salary: "مووچە",

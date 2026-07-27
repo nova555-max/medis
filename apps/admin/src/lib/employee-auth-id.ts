@@ -1,8 +1,15 @@
 /** Synthetic email domain for employee ID logins (Supabase still needs an email). */
 export const EMPLOYEE_EMAIL_DOMAIN = "emp.mediaoffice.local";
 
+/** Convert Arabic-Indic / Persian digits to ASCII (common on Kurdish phone keyboards). */
+export function normalizeDigits(value: string) {
+  return value
+    .replace(/[٠-٩]/g, (d) => String(d.charCodeAt(0) - 0x0660))
+    .replace(/[۰-۹]/g, (d) => String(d.charCodeAt(0) - 0x06f0));
+}
+
 export function employeeIdToEmail(employeeId: string) {
-  const id = employeeId.trim();
+  const id = normalizeDigits(employeeId).trim().replace(/\s+/g, "");
   if (id.includes("@")) return id.toLowerCase();
   return `${id}@${EMPLOYEE_EMAIL_DOMAIN}`;
 }

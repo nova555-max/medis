@@ -5,22 +5,34 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { isEmployeePortalAllowed } from "@/lib/auth/mobile";
 import { createClient } from "@/lib/supabase/server";
-import { employeeIdToEmail } from "@/lib/employee-auth-id";
+import {
+  employeeIdToEmail,
+  normalizeDigits,
+} from "@/lib/employee-auth-id";
 
 export type EmployeeAuthState = { error?: string; success?: string };
+
+const ENV_ERROR =
+  "پەیوەندی سیستەم کێشەی هەیە. تکایە دووبارە هەوڵ بدە یان پەیوەندی بە ئەدمین بکە.";
 
 export async function employeeLoginAction(
   _prev: EmployeeAuthState,
   formData: FormData,
 ): Promise<EmployeeAuthState> {
-  const ua = (await headers()).get("user-agent") || "";
-  if (!isEmployeePortalAllowed(ua)) {
-    return { error: "چوونەژوورەوەی کارمەند تەنها لە مۆبایل ڕێگەپێدراوە." };
+  const hdrs = await headers();
+  const ua = hdrs.get("user-agent") || "";
+  if (!isEmployeePortalAllowed(ua, hdrs)) {
+    return {
+      error:
+        "چوونەژوورەوەی کارمەند تەنها لە مۆبایل ڕێگەپێدراوە. لە مۆبایل Chrome یان Safari بەکاربهێنە (دۆخی Desktop Site ناکە).",
+    };
   }
 
-  const rawId = String(
-    formData.get("employeeId") || formData.get("email") || "",
-  ).trim();
+  const rawId = normalizeDigits(
+    String(formData.get("employeeId") || formData.get("email") || ""),
+  )
+    .trim()
+    .replace(/\s+/g, "");
   const password = String(formData.get("password") || "");
   const deviceId = String(formData.get("deviceId") || "").trim();
   const deviceLabel = String(formData.get("deviceLabel") || "").trim();
@@ -29,7 +41,6 @@ export async function employeeLoginAction(
   if (!deviceId || deviceId.length < 8) {
     // Last-resort server-side id so login is not blocked by empty client field
     const fallback = `srv-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
-    // use fallback below
     return employeeLoginWithDevice(
       rawId,
       password,
@@ -49,7 +60,13 @@ async function employeeLoginWithDevice(
 ): Promise<EmployeeAuthState> {
   const email = employeeIdToEmail(rawId);
 
-  const supabase = await createClient();
+  let supabase;
+  try {
+    supabase = await createClient();
+  } catch {
+    return { error: ENV_ERROR };
+  }
+
   const { error } = await supabase.auth.signInWithPassword({ email, password });
   if (error) return { error: "ئایدی یان وشەی نهێنی هەڵەیە." };
 
@@ -58,11 +75,17 @@ async function employeeLoginWithDevice(
   } = await supabase.auth.getUser();
   if (!user) return { error: "چوونەژوورەوە سەرنەکەوت." };
 
-  const { data: profile } = await supabase
+  const { data: profile, error: profileError } = await supabase
     .from("profiles")
     .select("role, is_active")
     .eq("id", user.id)
     .maybeSingle();
+
+  if (profileError) {
+    console.error("employee login profile:", profileError.message);
+    await supabase.auth.signOut();
+    return { error: "نەتوانرا پرۆفایل بخوێنرێتەوە. دووبارە هەوڵ بدە." };
+  }
 
   if (!profile || profile.role !== "employee" || !profile.is_active) {
     await supabase.auth.signOut();
@@ -83,13 +106,20 @@ async function employeeLoginWithDevice(
     return { error: "هەژمارەکەت چالاک نییە." };
   }
 
-  const { error: deviceError } = await supabase.rpc("employee_register_device", {
-    p_device_id: deviceId,
-    p_device_label: deviceLabel || null,
-  });
-
-  if (deviceError) {
-    console.error("employee_register_device:", deviceError.message);
+  // Device bind/switch must never block login (notify-only / auto-switch)
+  try {
+    const { error: deviceError } = await supabase.rpc(
+      "employee_register_device",
+      {
+        p_device_id: deviceId,
+        p_device_label: deviceLabel || null,
+      },
+    );
+    if (deviceError) {
+      console.error("employee_register_device:", deviceError.message);
+    }
+  } catch (e) {
+    console.error("employee_register_device threw:", e);
   }
 
   return { success: "ok" };

@@ -70,7 +70,7 @@ export async function updateSession(request: NextRequest) {
     path.startsWith("/auth/");
   const actionRequest = isServerAction(request);
   const ua = request.headers.get("user-agent") || "";
-  const mobileOk = isEmployeePortalAllowed(ua);
+  const mobileOk = isEmployeePortalAllowed(ua, request.headers);
 
   // Prefer real session cookie; ignore PKCE leftovers that look like auth cookies
   const hasSessionCookie = request.cookies.getAll().some((c) => {
@@ -88,13 +88,14 @@ export async function updateSession(request: NextRequest) {
       return clearLegacySurfaceCookie(supabaseResponse);
     }
     if (isEmployeeRoute) {
+      // Always allow login / forgot forms (even on desktop) so the page is reachable
+      if (isEmployeeLogin || isEmployeeForgot) {
+        return clearLegacySurfaceCookie(supabaseResponse);
+      }
       if (!mobileOk) {
         const redirectUrl = request.nextUrl.clone();
         redirectUrl.pathname = "/employee/desktop-blocked";
         return clearLegacySurfaceCookie(NextResponse.redirect(redirectUrl));
-      }
-      if (isEmployeeLogin || isEmployeeForgot) {
-        return clearLegacySurfaceCookie(supabaseResponse);
       }
       const redirectUrl = request.nextUrl.clone();
       redirectUrl.pathname = "/employee/login";
@@ -137,13 +138,7 @@ export async function updateSession(request: NextRequest) {
       return clearLegacySurfaceCookie(supabaseResponse);
     }
 
-    // Entire employee portal (login included): mobile only
-    if (!mobileOk) {
-      const redirectUrl = request.nextUrl.clone();
-      redirectUrl.pathname = "/employee/desktop-blocked";
-      return clearLegacySurfaceCookie(NextResponse.redirect(redirectUrl));
-    }
-
+    // Login / forgot: reachable on desktop; after auth, portal pages stay mobile-only
     if (isEmployeeLogin || isEmployeeForgot) {
       if (user && !actionRequest && isEmployeeLogin) {
         const { data: profile } = await supabase
@@ -153,6 +148,11 @@ export async function updateSession(request: NextRequest) {
           .maybeSingle();
 
         if (profile?.role === "employee" && profile.is_active) {
+          if (!mobileOk) {
+            const redirectUrl = request.nextUrl.clone();
+            redirectUrl.pathname = "/employee/desktop-blocked";
+            return clearLegacySurfaceCookie(NextResponse.redirect(redirectUrl));
+          }
           const redirectUrl = request.nextUrl.clone();
           redirectUrl.pathname = "/employee";
           return clearLegacySurfaceCookie(NextResponse.redirect(redirectUrl));
@@ -166,6 +166,13 @@ export async function updateSession(request: NextRequest) {
       }
 
       return clearLegacySurfaceCookie(supabaseResponse);
+    }
+
+    // Rest of employee portal: mobile only
+    if (!mobileOk) {
+      const redirectUrl = request.nextUrl.clone();
+      redirectUrl.pathname = "/employee/desktop-blocked";
+      return clearLegacySurfaceCookie(NextResponse.redirect(redirectUrl));
     }
 
     if (!user) {

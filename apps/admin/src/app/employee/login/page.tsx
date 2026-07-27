@@ -1,7 +1,6 @@
 import { Suspense } from "react";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { EmployeeLoginForm } from "@/components/employee-app/login-form";
-import { EmployeeAppDownloadLinks } from "@/components/employee-app/app-download-links";
 import { ckb } from "@/lib/ckb";
 
 export default function EmployeeLoginPage() {
@@ -10,8 +9,8 @@ export default function EmployeeLoginPage() {
       <div className="absolute left-4 top-4">
         <ThemeToggle />
       </div>
-      <div className="w-full max-w-md space-y-4">
-        <div className="mb-4 text-center">
+      <div className="w-full max-w-md">
+        <div className="mb-8 text-center">
           <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-brand-600 text-lg font-bold text-white">
             م
           </div>
@@ -30,9 +29,6 @@ export default function EmployeeLoginPage() {
           >
             <EmployeeLoginForm />
           </Suspense>
-        </div>
-        <div className="panel p-4">
-          <EmployeeAppDownloadLinks compact />
         </div>
       </div>
     </div>

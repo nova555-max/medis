@@ -2,7 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createServiceClient, hasServiceRoleKey } from "@/lib/supabase/service";
 
 /** Max owner-admin accounts that may self-register via /register */
-export const MAX_ADMIN_ACCOUNTS = 20;
+export const MAX_ADMIN_ACCOUNTS = 3;
 
 export type AdminRegistrationStatus = {
   used: number;

@@ -1,6 +1,4 @@
--- Raise self-serve admin registration cap + ensure slots RPC exists.
--- NOTE: Current production cap is 3 — see FIX_admin_cap_3.sql / 00029.
--- Keep this file for history only; do not re-run unless you intentionally want 20.
+-- Cap self-serve admin registration at 3 accounts
 
 create or replace function public.admin_registration_slots()
 returns table(used int, max_allowed int, open boolean)

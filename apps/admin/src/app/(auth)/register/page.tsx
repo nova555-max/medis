@@ -13,7 +13,7 @@ export default async function RegisterPage() {
       <AuthShell title={ckb.register} subtitle="تۆمارکردن داخراوە">
         <div className="space-y-4 text-center">
           <p className="rounded-xl border border-line bg-surface-muted px-4 py-5 text-sm text-ink-muted">
-            دروستکردنی هەژماری ئەدمین داخراوە.
+            دروستکردنی هەژماری ئەدمین داخراوە بۆ پاراستنی قورسایی داتابەیس.
             <br />
             تەنها {slots.maxAllowed} هەژماری ئەدمین ڕێگەپێدراوە ({slots.used}/
             {slots.maxAllowed}).

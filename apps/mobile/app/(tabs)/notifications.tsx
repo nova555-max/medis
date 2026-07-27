@@ -25,22 +25,34 @@ export default function NotificationsScreen() {
       .eq("user_id", profile?.id || "")
       .order("created_at", { ascending: false })
       .limit(50);
-    setRows((data as Notif[]) || []);
+    const list = (data as Notif[]) || [];
+    setRows(list);
     setLoading(false);
+
+    const unreadIds = list.filter((r) => !r.is_read).map((r) => r.id);
+    if (unreadIds.length > 0) {
+      await supabase
+        .from("notifications")
+        .update({ is_read: true })
+        .in("id", unreadIds);
+      setRows((prev) => prev.map((n) => ({ ...n, is_read: true })));
+    }
   }
 
   useEffect(() => {
     if (profile?.id) void load();
   }, [profile?.id]);
 
-  async function markRead(id: string) {
-    await supabase.from("notifications").update({ is_read: true }).eq("id", id);
-    setRows((prev) => prev.map((n) => (n.id === id ? { ...n, is_read: true } : n)));
-  }
-
   if (loading) {
     return (
-      <View style={{ flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: colors.bg }}>
+      <View
+        style={{
+          flex: 1,
+          alignItems: "center",
+          justifyContent: "center",
+          backgroundColor: colors.bg,
+        }}
+      >
         <ActivityIndicator color={colors.brand} />
       </View>
     );
@@ -52,13 +64,14 @@ export default function NotificationsScreen() {
         data={rows}
         keyExtractor={(item) => item.id}
         ListEmptyComponent={
-          <Text style={{ color: colors.muted, textAlign: "center", marginTop: 40 }}>
+          <Text
+            style={{ color: colors.muted, textAlign: "center", marginTop: 40 }}
+          >
             هیچ ئاگادارییەک نییە
           </Text>
         }
         renderItem={({ item }) => (
           <Pressable
-            onPress={() => markRead(item.id)}
             style={{
               backgroundColor: colors.card,
               borderRadius: 16,
@@ -68,10 +81,14 @@ export default function NotificationsScreen() {
               marginBottom: 10,
             }}
           >
-            <Text style={{ color: colors.ink, fontWeight: "700", textAlign: "right" }}>
+            <Text
+              style={{ color: colors.ink, fontWeight: "700", textAlign: "right" }}
+            >
               {item.title}
             </Text>
-            <Text style={{ color: colors.muted, marginTop: 6, textAlign: "right" }}>
+            <Text
+              style={{ color: colors.muted, marginTop: 6, textAlign: "right" }}
+            >
               {item.body}
             </Text>
           </Pressable>

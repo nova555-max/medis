@@ -1,12 +1,17 @@
 "use client";
 
 import { useState } from "react";
-import { Menu, X } from "lucide-react";
+import Link from "next/link";
+import { Bell, Menu, X } from "lucide-react";
 import { Sidebar } from "@/components/dashboard/sidebar";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Button } from "@/components/ui/button";
 import { logoutAction } from "@/lib/actions/auth";
 import { ckb } from "@/lib/ckb";
+import {
+  UnreadBadge,
+  useUnreadNotificationCount,
+} from "@/hooks/use-unread-notifications";
 
 export function DashboardShell({
   companyName,
@@ -20,6 +25,7 @@ export function DashboardShell({
   children: React.ReactNode;
 }) {
   const [open, setOpen] = useState(false);
+  const unread = useUnreadNotificationCount();
 
   return (
     <div className="min-h-screen lg:grid lg:grid-cols-[280px_1fr]">
@@ -58,12 +64,26 @@ export function DashboardShell({
               {open ? <X className="h-4 w-4" /> : <Menu className="h-4 w-4" />}
             </button>
             <div>
-              <p className="text-sm font-semibold text-ink">{adminName || ckb.dashboard}</p>
+              <p className="text-sm font-semibold text-ink">
+                {adminName || ckb.dashboard}
+              </p>
               <p className="text-xs text-ink-muted lg:hidden">{companyName}</p>
             </div>
           </div>
 
           <div className="flex items-center gap-2">
+            <Link
+              href="/notifications"
+              className="relative inline-flex h-10 w-10 items-center justify-center rounded-xl border border-line bg-surface-elevated text-ink transition hover:border-brand-300 hover:text-brand-700"
+              aria-label="ئاگادارییەکان"
+            >
+              <Bell className="h-4 w-4" />
+              {unread > 0 ? (
+                <span className="absolute -left-1 -top-1">
+                  <UnreadBadge count={unread} />
+                </span>
+              ) : null}
+            </Link>
             <ThemeToggle />
             <form action={logoutAction}>
               <Button type="submit" variant="secondary" className="h-10">

@@ -2,6 +2,7 @@
 
 import { usePathname } from "next/navigation";
 import { EmployeeBottomNav } from "@/components/employee-app/bottom-nav";
+import { EmployeeHeaderBell } from "@/components/employee-app/header-bell";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { ckb } from "@/lib/ckb";
 
@@ -30,7 +31,10 @@ export default function EmployeeLayout({
             </p>
             <p className="text-xs text-ink-muted">ئەپی کارمەندان</p>
           </div>
-          <ThemeToggle />
+          <div className="flex items-center gap-2">
+            <EmployeeHeaderBell />
+            <ThemeToggle />
+          </div>
         </div>
       </header>
       <div className="mx-auto max-w-lg px-4 py-5 animate-[fadeIn_0.45s_ease-out]">

@@ -20,15 +20,21 @@ import {
   CalendarDays,
   KeyRound,
   IdCard,
+  FileSignature,
 } from "lucide-react";
 import { ckb } from "@/lib/ckb";
 import { cn } from "@/lib/cn";
+import {
+  UnreadBadge,
+  useUnreadNotificationCount,
+} from "@/hooks/use-unread-notifications";
 
 type NavItem = {
   href: string;
   label: string;
   icon: typeof LayoutDashboard;
   ownerOnly?: boolean;
+  badgeKey?: "notifications";
 };
 
 const nav: NavItem[] = [
@@ -44,9 +50,15 @@ const nav: NavItem[] = [
   { href: "/leave", label: ckb.leave, icon: Palmtree },
   { href: "/payroll", label: ckb.payroll, icon: Wallet },
   { href: "/reports", label: ckb.reports, icon: BarChart3 },
-  { href: "/notifications", label: ckb.notifications, icon: Bell },
+  {
+    href: "/notifications",
+    label: ckb.notifications,
+    icon: Bell,
+    badgeKey: "notifications",
+  },
   { href: "/qr", label: ckb.qr, icon: QrCode },
   { href: "/press-badges", label: ckb.pressBadges, icon: IdCard },
+  { href: "/contracts", label: ckb.contracts, icon: FileSignature },
   { href: "/activity-logs", label: ckb.activityLogs, icon: ScrollText, ownerOnly: true },
   { href: "/backups", label: ckb.backups, icon: DatabaseBackup, ownerOnly: true },
   { href: "/settings", label: ckb.settings, icon: Settings, ownerOnly: true },
@@ -63,6 +75,7 @@ export function Sidebar({
 }) {
   const pathname = usePathname();
   const isOwner = role !== "manager";
+  const unread = useUnreadNotificationCount();
 
   return (
     <aside className="flex h-full flex-col border-l border-line bg-surface-elevated/90 backdrop-blur">
@@ -89,20 +102,39 @@ export function Sidebar({
                 ? pathname === "/"
                 : pathname.startsWith(item.href);
             const Icon = item.icon;
+            const showBadge =
+              item.badgeKey === "notifications" && unread > 0;
             return (
               <Link
                 key={item.href}
                 href={item.href}
                 onClick={onNavigate}
                 className={cn(
-                  "flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm transition",
+                  "relative flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm transition",
                   active
                     ? "bg-brand-600 text-white shadow-soft"
                     : "text-ink-muted hover:bg-surface-muted hover:text-ink",
                 )}
               >
-                <Icon className="h-4 w-4 shrink-0" />
-                <span>{item.label}</span>
+                <span className="relative shrink-0">
+                  <Icon className="h-4 w-4" />
+                  {showBadge ? (
+                    <span className="absolute -left-1.5 -top-1.5">
+                      <UnreadBadge
+                        count={unread}
+                        tone={active ? "onDark" : "danger"}
+                        className="scale-90"
+                      />
+                    </span>
+                  ) : null}
+                </span>
+                <span className="flex-1">{item.label}</span>
+                {showBadge ? (
+                  <UnreadBadge
+                    count={unread}
+                    tone={active ? "onDark" : "danger"}
+                  />
+                ) : null}
               </Link>
             );
           })}

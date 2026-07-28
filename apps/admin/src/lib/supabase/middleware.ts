@@ -1,6 +1,5 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
-import { isEmployeePortalAllowed } from "@/lib/auth/mobile";
 import { getPublicSupabaseEnv } from "@/lib/supabase/env";
 
 function isServerAction(request: NextRequest) {
@@ -8,7 +7,9 @@ function isServerAction(request: NextRequest) {
     request.method === "POST" &&
     (request.headers.has("next-action") ||
       request.headers.has("Next-Action") ||
-      Boolean(request.headers.get("content-type")?.includes("multipart/form-data")) ||
+      Boolean(
+        request.headers.get("content-type")?.includes("multipart/form-data"),
+      ) ||
       Boolean(request.headers.get("content-type")?.includes("text/plain")))
   );
 }
@@ -28,13 +29,47 @@ function clearLegacySurfaceCookie(res: NextResponse) {
   return res;
 }
 
+/** Clear Supabase auth cookies locally — never await network signOut in middleware. */
+function clearAuthCookies(request: NextRequest, res: NextResponse) {
+  for (const c of request.cookies.getAll()) {
+    const n = c.name;
+    if (
+      n.includes("auth-token") ||
+      n.includes("code-verifier") ||
+      (n.startsWith("sb-") && (n.includes("auth") || n.includes("refresh")))
+    ) {
+      res.cookies.set(n, "", {
+        path: "/",
+        maxAge: 0,
+        sameSite: "lax",
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+      });
+      try {
+        request.cookies.set(n, "");
+      } catch {
+        /* ignore */
+      }
+    }
+  }
+  return clearLegacySurfaceCookie(res);
+}
+
+function isAuthCookieName(name: string) {
+  if (name.includes("code-verifier")) return false;
+  return (
+    name.includes("auth-token") ||
+    (name.startsWith("sb-") && name.includes("-auth-token"))
+  );
+}
+
 export async function updateSession(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request });
 
   const { url, anonKey: key } = getPublicSupabaseEnv();
   const path = request.nextUrl.pathname;
 
-  // Skip auth entirely for static/API — was calling getUser() first (major latency)
+  // Skip auth entirely for static/API
   if (
     path.startsWith("/api/") ||
     path.startsWith("/_next/") ||
@@ -47,7 +82,6 @@ export async function updateSession(request: NextRequest) {
     return clearLegacySurfaceCookie(supabaseResponse);
   }
 
-  // Legacy email-OTP route — hard-redirect before auth round-trip
   if (path === "/verify-register" || path.startsWith("/verify-register/")) {
     const redirectUrl = request.nextUrl.clone();
     redirectUrl.pathname = "/register";
@@ -69,33 +103,28 @@ export async function updateSession(request: NextRequest) {
     path.startsWith("/reset-password") ||
     path.startsWith("/auth/");
   const actionRequest = isServerAction(request);
-  const ua = request.headers.get("user-agent") || "";
-  const mobileOk = isEmployeePortalAllowed(ua, request.headers);
 
-  // Prefer real session cookie; ignore PKCE leftovers that look like auth cookies
+  // Server actions (login/logout forms): never block on getUser/profile/signOut.
+  // Cookie writes from the action must pass through quickly.
+  if (actionRequest) {
+    return clearLegacySurfaceCookie(supabaseResponse);
+  }
+
   const hasSessionCookie = request.cookies.getAll().some((c) => {
-    const n = c.name;
-    if (n.includes("code-verifier")) return false;
-    if (!c.value || c.value.length < 10) return false;
-    return (
-      n.includes("auth-token") ||
-      (n.startsWith("sb-") && n.includes("-auth-token"))
-    );
+    if (!isAuthCookieName(c.name)) return false;
+    return Boolean(c.value && c.value.length >= 10);
   });
 
   if (!hasSessionCookie) {
     if (isEmployeeBlocked) {
-      return clearLegacySurfaceCookie(supabaseResponse);
+      // Legacy page — send users to login instead of a dead-end
+      const redirectUrl = request.nextUrl.clone();
+      redirectUrl.pathname = "/employee/login";
+      return clearLegacySurfaceCookie(NextResponse.redirect(redirectUrl));
     }
     if (isEmployeeRoute) {
-      // Always allow login / forgot forms (even on desktop) so the page is reachable
       if (isEmployeeLogin || isEmployeeForgot) {
         return clearLegacySurfaceCookie(supabaseResponse);
-      }
-      if (!mobileOk) {
-        const redirectUrl = request.nextUrl.clone();
-        redirectUrl.pathname = "/employee/desktop-blocked";
-        return clearLegacySurfaceCookie(NextResponse.redirect(redirectUrl));
       }
       const redirectUrl = request.nextUrl.clone();
       redirectUrl.pathname = "/employee/login";
@@ -115,7 +144,13 @@ export async function updateSession(request: NextRequest) {
       getAll() {
         return request.cookies.getAll();
       },
-      setAll(cookiesToSet: { name: string; value: string; options?: Record<string, unknown> }[]) {
+      setAll(
+        cookiesToSet: {
+          name: string;
+          value: string;
+          options?: Record<string, unknown>;
+        }[],
+      ) {
         cookiesToSet.forEach(({ name, value }) =>
           request.cookies.set(name, value),
         );
@@ -127,77 +162,94 @@ export async function updateSession(request: NextRequest) {
     },
   });
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  let user: { id: string } | null = null;
+  try {
+    const timedOut = { data: { user: null }, error: null } as Awaited<
+      ReturnType<typeof supabase.auth.getUser>
+    >;
+    const result = await Promise.race([
+      supabase.auth.getUser(),
+      new Promise<typeof timedOut>((resolve) =>
+        setTimeout(() => resolve(timedOut), 8000),
+      ),
+    ]);
+    user = result.data.user ?? null;
+  } catch {
+    user = null;
+  }
+
+  // Stale/corrupt cookie → clear and treat as logged out (prevents hang loops)
+  if (!user) {
+    const loggedOut = clearAuthCookies(
+      request,
+      NextResponse.next({ request }),
+    );
+    if (isEmployeeLogin || isEmployeeForgot || isAdminAuth || isEmployeeBlocked) {
+      return loggedOut;
+    }
+    const redirectUrl = request.nextUrl.clone();
+    redirectUrl.pathname = isEmployeeRoute ? "/employee/login" : "/login";
+    redirectUrl.search = "";
+    const res = clearAuthCookies(request, NextResponse.redirect(redirectUrl));
+    return res;
+  }
 
   // ===================== EMPLOYEE ROUTES =====================
   if (isEmployeeRoute) {
-    // Blocked explanation page is always reachable (desktop users land here)
     if (isEmployeeBlocked) {
-      return clearLegacySurfaceCookie(supabaseResponse);
+      const redirectUrl = request.nextUrl.clone();
+      redirectUrl.pathname = "/employee/login";
+      return clearLegacySurfaceCookie(NextResponse.redirect(redirectUrl));
     }
 
-    // Login / forgot: reachable on desktop; after auth, portal pages stay mobile-only
     if (isEmployeeLogin || isEmployeeForgot) {
-      if (user && !actionRequest && isEmployeeLogin) {
+      if (isEmployeeLogin) {
         const { data: profile } = await supabase
           .from("profiles")
-          .select("role, is_active")
+          .select("role, is_active, company_id")
           .eq("id", user.id)
           .maybeSingle();
 
-        if (profile?.role === "employee" && profile.is_active) {
-          if (!mobileOk) {
-            const redirectUrl = request.nextUrl.clone();
-            redirectUrl.pathname = "/employee/desktop-blocked";
-            return clearLegacySurfaceCookie(NextResponse.redirect(redirectUrl));
-          }
+        if (
+          profile?.role === "employee" &&
+          profile.is_active &&
+          profile.company_id
+        ) {
           const redirectUrl = request.nextUrl.clone();
           redirectUrl.pathname = "/employee";
           return clearLegacySurfaceCookie(NextResponse.redirect(redirectUrl));
         }
 
-        // Admin session on employee login → sign out so the employee form stays open
+        // Wrong role session on employee login → drop cookies, keep form open
         if (isStaff(profile?.role)) {
-          await supabase.auth.signOut();
-          return clearLegacySurfaceCookie(supabaseResponse);
+          return clearAuthCookies(request, supabaseResponse);
         }
       }
-
       return clearLegacySurfaceCookie(supabaseResponse);
-    }
-
-    // Rest of employee portal: mobile only
-    if (!mobileOk) {
-      const redirectUrl = request.nextUrl.clone();
-      redirectUrl.pathname = "/employee/desktop-blocked";
-      return clearLegacySurfaceCookie(NextResponse.redirect(redirectUrl));
-    }
-
-    if (!user) {
-      const redirectUrl = request.nextUrl.clone();
-      redirectUrl.pathname = "/employee/login";
-      return clearLegacySurfaceCookie(NextResponse.redirect(redirectUrl));
     }
 
     const { data: profile } = await supabase
       .from("profiles")
-      .select("role, is_active")
+      .select("role, is_active, company_id")
       .eq("id", user.id)
       .maybeSingle();
 
-    if (isStaff(profile?.role) && profile?.is_active) {
+    if (isStaff(profile?.role) && profile?.is_active && profile.company_id) {
       const redirectUrl = request.nextUrl.clone();
       redirectUrl.pathname = "/";
       return clearLegacySurfaceCookie(NextResponse.redirect(redirectUrl));
     }
 
-    if (!profile || profile.role !== "employee" || !profile.is_active) {
+    if (
+      !profile ||
+      profile.role !== "employee" ||
+      !profile.is_active ||
+      !profile.company_id
+    ) {
       const redirectUrl = request.nextUrl.clone();
       redirectUrl.pathname = "/employee/login";
       redirectUrl.searchParams.set("error", "employee_only");
-      return clearLegacySurfaceCookie(NextResponse.redirect(redirectUrl));
+      return clearAuthCookies(request, NextResponse.redirect(redirectUrl));
     }
 
     const { data: empStatus } = await supabase
@@ -207,14 +259,13 @@ export async function updateSession(request: NextRequest) {
       .maybeSingle();
 
     if (!empStatus || empStatus.status !== "active") {
-      await supabase.auth.signOut();
       const redirectUrl = request.nextUrl.clone();
       redirectUrl.pathname = "/employee/login";
       redirectUrl.searchParams.set(
         "error",
         empStatus?.status === "blacklisted" ? "blacklisted" : "inactive",
       );
-      return clearLegacySurfaceCookie(NextResponse.redirect(redirectUrl));
+      return clearAuthCookies(request, NextResponse.redirect(redirectUrl));
     }
 
     return clearLegacySurfaceCookie(supabaseResponse);
@@ -228,32 +279,38 @@ export async function updateSession(request: NextRequest) {
       path.startsWith("/reset-password") ||
       path.startsWith("/auth/");
 
-    if (user && !actionRequest && !isPasswordFlow) {
+    if (!isPasswordFlow) {
       const { data: profile } = await supabase
         .from("profiles")
-        .select("role, is_active")
+        .select("role, is_active, company_id")
         .eq("id", user.id)
         .maybeSingle();
 
-      if (isStaff(profile?.role) && profile?.is_active && isAdminLogin) {
+      const staffOk =
+        isStaff(profile?.role) && profile?.is_active && !!profile?.company_id;
+      const employeeOk =
+        profile?.role === "employee" &&
+        profile.is_active &&
+        !!profile.company_id;
+
+      if (staffOk && isAdminLogin) {
         const redirectUrl = request.nextUrl.clone();
         redirectUrl.pathname = "/";
         return clearLegacySurfaceCookie(NextResponse.redirect(redirectUrl));
       }
 
-      // Employee session on admin login → sign out so admin form stays open
+      // Employee session on admin login → drop cookies so admin form works
       if (profile?.role === "employee" && isAdminLogin) {
-        await supabase.auth.signOut();
-        return clearLegacySurfaceCookie(supabaseResponse);
+        return clearAuthCookies(request, supabaseResponse);
       }
 
-      if (profile?.role === "employee" && profile.is_active && !isAdminLogin) {
+      if (employeeOk && !isAdminLogin) {
         const redirectUrl = request.nextUrl.clone();
         redirectUrl.pathname = "/employee";
         return clearLegacySurfaceCookie(NextResponse.redirect(redirectUrl));
       }
 
-      if (isStaff(profile?.role) && profile?.is_active && !isAdminLogin) {
+      if (staffOk && !isAdminLogin) {
         const redirectUrl = request.nextUrl.clone();
         redirectUrl.pathname = "/";
         return clearLegacySurfaceCookie(NextResponse.redirect(redirectUrl));
@@ -264,31 +321,32 @@ export async function updateSession(request: NextRequest) {
   }
 
   // ===================== ADMIN APP =====================
-  if (!user) {
-    const redirectUrl = request.nextUrl.clone();
-    redirectUrl.pathname = "/login";
-    redirectUrl.search = "";
-    return clearLegacySurfaceCookie(NextResponse.redirect(redirectUrl));
-  }
-
   const { data: profile } = await supabase
     .from("profiles")
-    .select("role, is_active")
+    .select("role, is_active, company_id")
     .eq("id", user.id)
     .maybeSingle();
 
-  if (profile?.role === "employee" && profile.is_active) {
+  if (
+    profile?.role === "employee" &&
+    profile.is_active &&
+    profile.company_id
+  ) {
     const redirectUrl = request.nextUrl.clone();
     redirectUrl.pathname = "/employee";
     return clearLegacySurfaceCookie(NextResponse.redirect(redirectUrl));
   }
 
-  if (!profile || !isStaff(profile.role) || !profile.is_active) {
-    await supabase.auth.signOut();
+  if (
+    !profile ||
+    !isStaff(profile.role) ||
+    !profile.is_active ||
+    !profile.company_id
+  ) {
     const redirectUrl = request.nextUrl.clone();
     redirectUrl.pathname = "/login";
     redirectUrl.searchParams.set("error", "admin_only");
-    return clearLegacySurfaceCookie(NextResponse.redirect(redirectUrl));
+    return clearAuthCookies(request, NextResponse.redirect(redirectUrl));
   }
 
   if (profile.role === "manager") {

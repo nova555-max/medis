@@ -34,49 +34,60 @@ export async function loginAction(
     return { error: ENV_ERROR };
   }
 
-  // Do not signOut first — clears cookies mid-request and can break sign-in on Netlify/SSR
-  const { error } = await supabase.auth.signInWithPassword(parsed.data);
+  try {
+    const { error } = await supabase.auth.signInWithPassword(parsed.data);
 
-  if (error) {
-    return { error: "ئیمەیڵ یان وشەی نهێنی هەڵەیە." };
+    if (error) {
+      return { error: "ئیمەیڵ یان وشەی نهێنی هەڵەیە." };
+    }
+
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) {
+      return { error: "چوونەژوورەوە سەرنەکەوت." };
+    }
+
+    const { data: profile, error: profileError } = await supabase
+      .from("profiles")
+      .select("role, is_active, company_id")
+      .eq("id", user.id)
+      .maybeSingle();
+
+    if (profileError) {
+      console.error("login profile:", profileError.message);
+      return { error: "نەتوانرا پرۆفایل بخوێنرێتەوە. دووبارە هەوڵ بدە." };
+    }
+
+    const isStaff =
+      profile?.role === "admin" || profile?.role === "manager";
+
+    if (!profile || !isStaff || !profile.is_active || !profile.company_id) {
+      try {
+        await supabase.auth.signOut();
+      } catch {
+        /* ignore */
+      }
+      return {
+        error:
+          "ئەم پانێڵە تەنها بۆ بەڕێوەبەرە. کارمەندان ئەپی کارمەند بەکاربهێنن.",
+      };
+    }
+
+    return { success: "ok" };
+  } catch (e) {
+    console.error("loginAction:", e);
+    return { error: "چوونەژوورەوە سەرنەکەوت. دووبارە هەوڵ بدە." };
   }
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    return { error: "چوونەژوورەوە سەرنەکەوت." };
-  }
-
-  const { data: profile, error: profileError } = await supabase
-    .from("profiles")
-    .select("role, is_active, company_id")
-    .eq("id", user.id)
-    .maybeSingle();
-
-  if (profileError) {
-    console.error("login profile:", profileError.message);
-    await supabase.auth.signOut();
-    return { error: "نەتوانرا پرۆفایل بخوێنرێتەوە. دووبارە هەوڵ بدە." };
-  }
-
-  const isStaff =
-    profile?.role === "admin" || profile?.role === "manager";
-
-  if (!profile || !isStaff || !profile.is_active || !profile.company_id) {
-    await supabase.auth.signOut();
-    return {
-      error:
-        "ئەم پانێڵە تەنها بۆ بەڕێوەبەرە. کارمەندان ئەپی کارمەند بەکاربهێنن.",
-    };
-  }
-
-  return { success: "ok" };
 }
 
 export async function logoutAction() {
-  const supabase = await createClient();
-  await supabase.auth.signOut();
+  try {
+    const supabase = await createClient();
+    await supabase.auth.signOut();
+  } catch {
+    /* ignore */
+  }
   redirect("/login");
 }

@@ -1,9 +1,7 @@
 "use server";
 
-import { headers } from "next/headers";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { isEmployeePortalAllowed } from "@/lib/auth/mobile";
 import { createClient } from "@/lib/supabase/server";
 import {
   employeeIdToEmail,
@@ -19,15 +17,6 @@ export async function employeeLoginAction(
   _prev: EmployeeAuthState,
   formData: FormData,
 ): Promise<EmployeeAuthState> {
-  const hdrs = await headers();
-  const ua = hdrs.get("user-agent") || "";
-  if (!isEmployeePortalAllowed(ua, hdrs)) {
-    return {
-      error:
-        "چوونەژوورەوەی کارمەند تەنها لە مۆبایل ڕێگەپێدراوە. لە مۆبایل Chrome یان Safari بەکاربهێنە (دۆخی Desktop Site ناکە).",
-    };
-  }
-
   const rawId = normalizeDigits(
     String(formData.get("employeeId") || formData.get("email") || ""),
   )
@@ -39,7 +28,6 @@ export async function employeeLoginAction(
 
   if (!rawId || !password) return { error: "زانیارییەکان نادروستن." };
   if (!deviceId || deviceId.length < 8) {
-    // Last-resort server-side id so login is not blocked by empty client field
     const fallback = `srv-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
     return employeeLoginWithDevice(
       rawId,
@@ -67,62 +55,82 @@ async function employeeLoginWithDevice(
     return { error: ENV_ERROR };
   }
 
-  const { error } = await supabase.auth.signInWithPassword({ email, password });
-  if (error) return { error: "ئایدی یان وشەی نهێنی هەڵەیە." };
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return { error: "چوونەژوورەوە سەرنەکەوت." };
-
-  const { data: profile, error: profileError } = await supabase
-    .from("profiles")
-    .select("role, is_active")
-    .eq("id", user.id)
-    .maybeSingle();
-
-  if (profileError) {
-    console.error("employee login profile:", profileError.message);
-    await supabase.auth.signOut();
-    return { error: "نەتوانرا پرۆفایل بخوێنرێتەوە. دووبارە هەوڵ بدە." };
-  }
-
-  if (!profile || profile.role !== "employee" || !profile.is_active) {
-    await supabase.auth.signOut();
-    return { error: "ئەم بەشە تەنها بۆ کارمەندانە." };
-  }
-
-  const { data: empRow } = await supabase
-    .from("employees")
-    .select("status")
-    .eq("user_id", user.id)
-    .maybeSingle();
-
-  if (!empRow || empRow.status !== "active") {
-    await supabase.auth.signOut();
-    if (empRow?.status === "blacklisted") {
-      return { error: "هەژمارەکەت ڕەشکراوە — پەیوەندی بە ئەدمین بکە." };
-    }
-    return { error: "هەژمارەکەت چالاک نییە." };
-  }
-
-  // Device bind/switch must never block login (notify-only / auto-switch)
   try {
-    const { error: deviceError } = await supabase.rpc(
-      "employee_register_device",
-      {
-        p_device_id: deviceId,
-        p_device_label: deviceLabel || null,
-      },
-    );
-    if (deviceError) {
-      console.error("employee_register_device:", deviceError.message);
-    }
-  } catch (e) {
-    console.error("employee_register_device threw:", e);
-  }
+    const { error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
+    if (error) return { error: "ئایدی یان وشەی نهێنی هەڵەیە." };
 
-  return { success: "ok" };
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) return { error: "چوونەژوورەوە سەرنەکەوت." };
+
+    const { data: profile, error: profileError } = await supabase
+      .from("profiles")
+      .select("role, is_active, company_id")
+      .eq("id", user.id)
+      .maybeSingle();
+
+    if (profileError) {
+      console.error("employee login profile:", profileError.message);
+      return { error: "نەتوانرا پرۆفایل بخوێنرێتەوە. دووبارە هەوڵ بدە." };
+    }
+
+    if (
+      !profile ||
+      profile.role !== "employee" ||
+      !profile.is_active ||
+      !profile.company_id
+    ) {
+      try {
+        await supabase.auth.signOut();
+      } catch {
+        /* ignore */
+      }
+      return { error: "ئەم بەشە تەنها بۆ کارمەندانە." };
+    }
+
+    const { data: empRow } = await supabase
+      .from("employees")
+      .select("status")
+      .eq("user_id", user.id)
+      .maybeSingle();
+
+    if (!empRow || empRow.status !== "active") {
+      try {
+        await supabase.auth.signOut();
+      } catch {
+        /* ignore */
+      }
+      if (empRow?.status === "blacklisted") {
+        return { error: "هەژمارەکەت ڕەشکراوە — پەیوەندی بە ئەدمین بکە." };
+      }
+      return { error: "هەژمارەکەت چالاک نییە." };
+    }
+
+    // Device bind/switch must never block login
+    try {
+      const { error: deviceError } = await supabase.rpc(
+        "employee_register_device",
+        {
+          p_device_id: deviceId,
+          p_device_label: deviceLabel || null,
+        },
+      );
+      if (deviceError) {
+        console.error("employee_register_device:", deviceError.message);
+      }
+    } catch (e) {
+      console.error("employee_register_device threw:", e);
+    }
+
+    return { success: "ok" };
+  } catch (e) {
+    console.error("employeeLoginWithDevice:", e);
+    return { error: "چوونەژوورەوە سەرنەکەوت. دووبارە هەوڵ بدە." };
+  }
 }
 
 export async function employeeLogoutAction() {

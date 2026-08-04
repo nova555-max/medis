@@ -134,7 +134,11 @@ export default async function EmployeesPage({
 
       <WorkHoursPanel hours={companyHours} />
 
-      <EmployeeForm departments={departments ?? []} />
+      <EmployeeForm
+        departments={departments ?? []}
+        defaultWorkStart={String(companyHours.work_start_time).slice(0, 5)}
+        defaultWorkEnd={String(companyHours.work_end_time).slice(0, 5)}
+      />
 
       <div className="flex flex-wrap gap-2 text-sm">
         {(

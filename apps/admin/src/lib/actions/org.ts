@@ -8,6 +8,7 @@ import {
   generateDigitCode,
   isAlphanumericPassword,
 } from "@/lib/employee-auth-id";
+import { ensureShiftForHours, normalizeTime24h } from "@/lib/work-hours";
 
 export type ActionResult = {
   error?: string;
@@ -247,8 +248,42 @@ export async function createEmployeeAction(
     }
   }
 
+  // Per-employee work hours (24h) → assign/create matching shift
+  const workStart = String(formData.get("workStart") || "").trim();
+  const workEnd = String(formData.get("workEnd") || "").trim();
+  if (workStart || workEnd) {
+    if (!normalizeTime24h(workStart) || !normalizeTime24h(workEnd)) {
+      return {
+        error:
+          "کارمەند زیادکرا، بەڵام کاتی دەوام نادروستە. لە پەڕەی کارمەند کاتەکە دەستکاری بکە (٢٤ کاتژمێری).",
+        loginId: employeeCode,
+        password,
+      };
+    }
+    const shift = await ensureShiftForHours(
+      ctx.supabase,
+      ctx.profile.company_id,
+      workStart,
+      workEnd,
+      15,
+    );
+    if ("error" in shift) {
+      return {
+        error: `کارمەند زیادکرا، بەڵام کاتی دەوام پاشەکەوت نەبوو: ${shift.error}`,
+        loginId: employeeCode,
+        password,
+      };
+    }
+    await ctx.supabase
+      .from("employees")
+      .update({ shift_id: shift.id })
+      .eq("id", employeeId)
+      .eq("company_id", ctx.profile.company_id);
+  }
+
   revalidatePath("/employees");
   revalidatePath("/payroll");
+  revalidatePath("/shifts");
   return {
     success: "کارمەند زیادکرا. ئایدی و وشەی نهێنی خۆکار دروستکران — پێیان بدە.",
     loginId: employeeCode,

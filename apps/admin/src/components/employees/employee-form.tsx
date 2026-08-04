@@ -51,8 +51,12 @@ function loadSavedCreds(): SavedCreds | null {
 
 export function EmployeeForm({
   departments,
+  defaultWorkStart = "09:00",
+  defaultWorkEnd = "17:00",
 }: {
   departments: Option[];
+  defaultWorkStart?: string;
+  defaultWorkEnd?: string;
 }) {
   const [state, formAction, pending] = useActionState(
     createEmployeeAction,
@@ -337,6 +341,45 @@ export function EmployeeForm({
             </select>
           </div>
           <input type="hidden" name="positionId" value="" />
+
+          <div className="sm:col-span-2 lg:col-span-3 rounded-xl border border-line bg-surface-muted/40 p-4">
+            <p className="text-sm font-semibold">کاتی دەستپێک و کۆتایی کار</p>
+            <p className="mt-1 text-xs text-ink-muted">
+              بە شێوەی ٢٤ کاتژمێری دابنێ — بۆ نموونە 08:30 تا 16:00 یان 09:00 تا
+              17:00
+            </p>
+            <div className="mt-3 grid gap-3 sm:grid-cols-2">
+              <div>
+                <Label htmlFor="workStart">کاتی دەستپێکی کار</Label>
+                <Input
+                  id="workStart"
+                  name="workStart"
+                  type="time"
+                  step={60}
+                  lang="en-GB"
+                  defaultValue={String(defaultWorkStart).slice(0, 5)}
+                  required
+                  dir="ltr"
+                  className="text-left tabular-nums"
+                />
+              </div>
+              <div>
+                <Label htmlFor="workEnd">کاتی کۆتایی کار</Label>
+                <Input
+                  id="workEnd"
+                  name="workEnd"
+                  type="time"
+                  step={60}
+                  lang="en-GB"
+                  defaultValue={String(defaultWorkEnd).slice(0, 5)}
+                  required
+                  dir="ltr"
+                  className="text-left tabular-nums"
+                />
+              </div>
+            </div>
+          </div>
+
           <div className="sm:col-span-2 lg:col-span-3">
             <Label htmlFor="notes">تێبینی</Label>
             <Input id="notes" name="notes" />

@@ -48,6 +48,7 @@ export default async function EmployeeDetailPage({
     { data: shifts },
     { data: departments },
     { data: positions },
+    { data: company },
   ] = await Promise.all([
     supabase
       .from("employee_documents")
@@ -69,7 +70,7 @@ export default async function EmployeeDetailPage({
       .order("name_ckb"),
     supabase
       .from("shifts")
-      .select("id, name")
+      .select("id, name, start_time, end_time")
       .eq("company_id", employee.company_id)
       .eq("is_active", true)
       .order("name"),
@@ -85,6 +86,11 @@ export default async function EmployeeDetailPage({
       .eq("company_id", employee.company_id)
       .eq("is_active", true)
       .order("name"),
+    supabase
+      .from("companies")
+      .select("work_start_time, work_end_time")
+      .eq("id", employee.company_id)
+      .maybeSingle(),
   ]);
 
   const balanceRows = (balances ?? []).map((b) => {
@@ -177,8 +183,16 @@ export default async function EmployeeDetailPage({
 
       <EmployeeOrgAssign
         employeeId={employee.id}
-        shiftId={employee.shift_id}
-        shifts={shifts ?? []}
+        workStart={String(
+          (shifts ?? []).find((s) => s.id === employee.shift_id)?.start_time ||
+            company?.work_start_time ||
+            "09:00",
+        ).slice(0, 5)}
+        workEnd={String(
+          (shifts ?? []).find((s) => s.id === employee.shift_id)?.end_time ||
+            company?.work_end_time ||
+            "17:00",
+        ).slice(0, 5)}
       />
 
       <EmployeeGpsForm

@@ -169,3 +169,40 @@ export async function assignEmployeeOrgAction(
   revalidatePath("/employees");
   return { success: "شفت پاشەکەوتکرا." };
 }
+
+export async function assignEmployeeWorkHoursAction(
+  _prev: ActionResult,
+  formData: FormData,
+): Promise<ActionResult> {
+  const employeeId = String(formData.get("employeeId") || "").trim();
+  const workStart = String(formData.get("workStart") || "").trim();
+  const workEnd = String(formData.get("workEnd") || "").trim();
+  if (!employeeId) return { error: "کارمەند نەدۆزرایەوە." };
+
+  const ctx = await requireAdmin();
+  if (ctx.error || !ctx.profile) return { error: ctx.error };
+
+  const { ensureShiftForHours } = await import("@/lib/work-hours");
+  const shift = await ensureShiftForHours(
+    ctx.supabase,
+    ctx.profile.company_id,
+    workStart,
+    workEnd,
+    15,
+  );
+  if ("error" in shift) return { error: shift.error };
+
+  const { error } = await ctx.supabase
+    .from("employees")
+    .update({ shift_id: shift.id })
+    .eq("id", employeeId)
+    .eq("company_id", ctx.profile.company_id);
+
+  if (error) return { error: "پاشەکەوتکردنی کاتی دەوام سەرنەکەوت." };
+  revalidatePath(`/employees/${employeeId}`);
+  revalidatePath("/employees");
+  revalidatePath("/shifts");
+  return {
+    success: `کاتی دەوام پاشەکەوتکرا: ${shift.start} – ${shift.end}`,
+  };
+}

@@ -29,7 +29,7 @@ export function WorkHoursPanel({ hours }: { hours: Hours }) {
       <div className="md:col-span-3">
         <h2 className="text-lg font-semibold">کاتی هاتن و چوون</h2>
         <p className="mt-1 text-sm text-ink-muted">
-          کاتی دەستپێک و کۆتایی دەوام بۆ هەموو کارمەندان — بۆ دواکەوتن و ئامادەبوون
+          کاتی دەستپێک و کۆتایی دەوام بۆ هەموو کارمەندان — بە شێوەی ٢٤ کاتژمێری
         </p>
       </div>
 
@@ -39,9 +39,11 @@ export function WorkHoursPanel({ hours }: { hours: Hours }) {
           id="workStart"
           name="workStart"
           type="time"
+          step={60}
+          lang="en-GB"
           defaultValue={String(hours.work_start_time).slice(0, 5)}
           dir="ltr"
-          className="text-left"
+          className="text-left tabular-nums"
           required
         />
       </div>
@@ -51,9 +53,11 @@ export function WorkHoursPanel({ hours }: { hours: Hours }) {
           id="workEnd"
           name="workEnd"
           type="time"
+          step={60}
+          lang="en-GB"
           defaultValue={String(hours.work_end_time).slice(0, 5)}
           dir="ltr"
-          className="text-left"
+          className="text-left tabular-nums"
           required
         />
       </div>

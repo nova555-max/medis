@@ -20,11 +20,11 @@ export function ShiftCreateForm() {
       <div className="grid grid-cols-2 gap-3">
         <div>
           <Label htmlFor="startTime">دەستپێک</Label>
-          <Input id="startTime" name="startTime" type="time" defaultValue="09:00" required dir="ltr" className="text-left" />
+          <Input id="startTime" name="startTime" type="time" step={60} lang="en-GB" defaultValue="09:00" required dir="ltr" className="text-left tabular-nums" />
         </div>
         <div>
           <Label htmlFor="endTime">کۆتایی</Label>
-          <Input id="endTime" name="endTime" type="time" defaultValue="17:00" required dir="ltr" className="text-left" />
+          <Input id="endTime" name="endTime" type="time" step={60} lang="en-GB" defaultValue="17:00" required dir="ltr" className="text-left tabular-nums" />
         </div>
       </div>
       <div>
